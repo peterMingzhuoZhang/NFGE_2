@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32616.157
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NFGE_2", "NFGE_2\NFGE_2.vcxproj", "{09A1E488-4817-44B9-9328-FDCF65F4D951}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NFGE_2", "Engine\NFGE_2\NFGE_2.vcxproj", "{09A1E488-4817-44B9-9328-FDCF65F4D951}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Engine", "Engine", "{C08FD7D5-C7F5-4F02-9199-1E825C6CCE9B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,6 +26,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{09A1E488-4817-44B9-9328-FDCF65F4D951} = {C08FD7D5-C7F5-4F02-9199-1E825C6CCE9B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {80151818-26EA-42CE-9E17-D6ED76A7DC88}
