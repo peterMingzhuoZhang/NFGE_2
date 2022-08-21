@@ -7,6 +7,12 @@
     <Filter Include="Src">
       <UniqueIdentifier>{53d72c3f-806c-49c4-b8d8-dbb702b335ad}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Inc\Material">
+      <UniqueIdentifier>{85d14de4-33b1-4a3e-83fc-de5a693cca34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Inc\Camera">
+      <UniqueIdentifier>{668e32dd-9a56-406c-9f07-dc4b17971700}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Inc\Common.h">
@@ -18,9 +24,21 @@
     <ClInclude Include="Src\Precompiled.h">
       <Filter>Src</Filter>
     </ClInclude>
+    <ClInclude Include="Inc\Colors.h">
+      <Filter>Inc\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GraphicsSystem.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Camera.h">
+      <Filter>Inc\Camera</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Precompiled.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GraphicsSystem.cpp">
       <Filter>Src</Filter>
     </ClCompile>
   </ItemGroup>
