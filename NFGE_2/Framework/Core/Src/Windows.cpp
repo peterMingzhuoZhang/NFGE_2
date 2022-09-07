@@ -76,6 +76,8 @@ void NFGE::Core::Window::Initialize(HINSTANCE instance, LPCSTR appName, uint32_t
 	ShowWindow(mWindow, maximize ? SW_MAXIMIZE : SW_SHOWNORMAL);
 
 	SetCursorPos(screenWidth >> 1, screenHeight >> 1);
+
+	GetWindowRect(mWindow, &mWindowRect);
 }
 
 void NFGE::Core::Window::Terminate()

@@ -28,6 +28,7 @@ namespace NFGE {
 			//Default members initializtion
 			HINSTANCE mInstance{ nullptr };
 			HWND mWindow{ nullptr };
+			RECT mWindowRect{};
 			std::string mAppName;
 
 		};

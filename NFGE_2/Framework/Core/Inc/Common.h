@@ -33,6 +33,9 @@
 #include <vector>
 #include <variant>
 
+// Windows Runtime Library. Needed for Microsoft::WRL::ComPtr<> template class.
+#include <wrl.h>
+
 // External headers
 #include <RapidJSON/Inc/document.h>
 #include <RapidJSON/Inc/filereadstream.h>
