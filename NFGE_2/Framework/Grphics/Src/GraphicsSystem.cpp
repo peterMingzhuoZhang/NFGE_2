@@ -4,6 +4,7 @@
 // Date:		2022/8
 //====================================================================================================
 
+#include "Precompiled.h"
 #include "GraphicsSystem.h"
 
 using namespace NFGE;
