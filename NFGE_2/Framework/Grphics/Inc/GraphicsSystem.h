@@ -12,7 +12,7 @@ namespace NFGE::Graphics {
 	class GraphicsSystem
 	{
 	public:
-		static void StaticInitialize(HWND window, bool fullscreen);
+		static void StaticInitialize(HWND window, bool fullscreen, bool useWarp = false, SIZE_T dedicatedVideoMemory = 0);
 		static void StaticTerminate();
 		static GraphicsSystem* Get();
 
@@ -23,7 +23,7 @@ namespace NFGE::Graphics {
 		GraphicsSystem(const GraphicsSystem&) = delete;
 		GraphicsSystem& operator=(const GraphicsSystem&) = delete;
 
-		void Initialize(HWND window, bool fullscreen);
+		void Initialize(HWND window, bool fullscreen, bool useWarp, SIZE_T dedicatedVideoMemory);
 		void Terminate();
 
 		void BeginRender();
@@ -44,6 +44,8 @@ namespace NFGE::Graphics {
 
 
 	private:
+		static const uint8_t sNumFrames = 3;
+
 		friend LRESULT CALLBACK GraphicsSystemMessageHandler(HWND window, UINT message, WPARAM wPrarm, LPARAM lParam);
 		//friend ID3D11Device* GetDevice();
 		//friend ID3D11DeviceContext* GetContext();
@@ -60,8 +62,30 @@ namespace NFGE::Graphics {
 		//DXGI_SWAP_CHAIN_DESC mSwapChainDesc;
 		//D3D11_VIEWPORT mViewport;
 
-		Color mClearColor = { 0.0f,0.0f,0.0f,0.0f };
-		int mVSync = 1;
+		// DirectX 12 Objects
+		Microsoft::WRL::ComPtr<ID3D12Device2> mDevice{ nullptr };
+		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mCommandAllocators[sNumFrames]{ nullptr };
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList{ nullptr };
+		Microsoft::WRL::ComPtr<ID3D12CommandQueue> mCommandQueue{ nullptr };
+		Microsoft::WRL::ComPtr<IDXGISwapChain4> mSwapChain{ nullptr };
+		Microsoft::WRL::ComPtr<ID3D12Resource> mBackBuffers[sNumFrames]{ nullptr };
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRTVDescriptorHeap{ nullptr };
+		UINT mRTVDescriptorSize{ 0 };
+		UINT mCurrentBackBufferIndex{ 0 };
+
+		// Synchronization objects
+		Microsoft::WRL::ComPtr<ID3D12Fence> mFence{ nullptr };
+		uint64_t mFenceValue{ 0 };
+		uint64_t mFrameFenceValues[sNumFrames]{ 0 };
+		HANDLE mFenceEvent{ nullptr };
+
+		// Graphic controls
+		Color mClearColor{ 0.0f,0.0f,0.0f,0.0f };
+		bool mVSync{ true };
+		bool mFullScreen{ false };
+		SIZE_T mMaxDedicatedVideoMemory{ 0 };
+
+		Microsoft::WRL::ComPtr<IDXGIAdapter4> GetAdapter(bool useWarp, SIZE_T dedicatedVideoMemory);
 	};
 
 } // namespace NFGE::Graphics

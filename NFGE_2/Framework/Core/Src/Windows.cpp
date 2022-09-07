@@ -25,6 +25,12 @@ LRESULT CALLBACK WinProc(HWND handle, UINT message, WPARAM wParam, LPARAM lParam
 
 void NFGE::Core::Window::Initialize(HINSTANCE instance, LPCSTR appName, uint32_t width, uint32_t height, bool maximize)
 {
+	// Windows 10 Creators update adds Per Monitor V2 DPI awareness context.
+	// Using this awareness context allows the client area of the window 
+	// to achieve 100% scaling while still allowing non-client window content to 
+	// be rendered in a DPI sensitive fashion.
+	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
 	mInstance = instance;
 	mAppName = appName;
 
