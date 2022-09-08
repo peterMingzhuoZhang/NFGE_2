@@ -33,6 +33,9 @@
     <ClInclude Include="Inc\Camera.h">
       <Filter>Inc\Camera</Filter>
     </ClInclude>
+    <ClInclude Include="Inc\d3dx12.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Precompiled.cpp">

@@ -9,6 +9,7 @@
 
 using namespace NFGE;
 using namespace NFGE::Graphics;
+using namespace Microsoft::WRL;
 
 // Internal linkage
 namespace 
@@ -27,6 +28,7 @@ namespace
 		debugInterface->EnableDebugLayer();
 #endif
 	}
+
 }
 
 LRESULT CALLBACK Graphics::GraphicsSystemMessageHandler(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
@@ -42,12 +44,30 @@ LRESULT CALLBACK Graphics::GraphicsSystemMessageHandler(HWND window, UINT messag
 			sGraphicsSystem->Resize(width, height);
 			break;
 		}
+		case WM_KEYDOWN:
+		{
+			bool alt = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
+
+			switch (wParam)
+			{
+			case 'V':
+				sGraphicsSystem->mVSync = !sGraphicsSystem->mVSync;
+				break;
+			case VK_RETURN:
+				if (alt)
+				{
+			case VK_F11:
+				sGraphicsSystem->ToggleFullscreen(window);
+				}
+				break;
+			}
+		}
 		}
 	}
 	return sWindowMessageHandler.ForwardMessage(window, message, wParam, lParam);
 }
 
-void GraphicsSystem::StaticInitialize(HWND window, bool fullscreen, bool useWarp, SIZE_T dedicatedVideoMemory)
+void GraphicsSystem::StaticInitialize(const NFGE::Core::Window& window, bool fullscreen, bool useWarp, SIZE_T dedicatedVideoMemory)
 {
 	ASSERT(sGraphicsSystem == nullptr, "[Graphics::GraphicsSystem] System already initialized!");
 	sGraphicsSystem = std::make_unique<GraphicsSystem>();
@@ -74,43 +94,189 @@ GraphicsSystem::~GraphicsSystem()
 	//ASSERT(mD3ddDevice == nullptr, "[Graphics::GraphicsSystem] Terminate() must be called to clean up!");
 }
 
-void GraphicsSystem::Initialize(HWND window, bool fullscreen, bool useWarp, SIZE_T dedicatedVideoMemory)
+void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscreen, bool useWarp, SIZE_T dedicatedVideoMemory)
 {
 	EnableDebugLayer();
 
-	Microsoft::WRL::ComPtr<IDXGIAdapter4> dxgiAdapter4 = GetAdapter(useWarp, dedicatedVideoMemory);
+	ComPtr<IDXGIAdapter4> dxgiAdapter4 = GetAdapter(useWarp, dedicatedVideoMemory);
+	mDevice = CreateDevice(dxgiAdapter4);
+	mCommandQueue = CreateCommandQueue(mDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	
+	mWindowRect = window.GetWindowRECT();
+	mHeight = (uint32_t)(mWindowRect.bottom - mWindowRect.top);
+	mWidth = (uint32_t)(mWindowRect.right - mWindowRect.left);
+	HWND windowHandle = window.GetWindowHandle();
+	mSwapChain = CreateSwapChain(windowHandle, mCommandQueue, mWidth, mHeight, sNumFrames);
+
+	mCurrentBackBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
+
+	mRTVDescriptorHeap = CreateDescriptorHeap(mDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, sNumFrames);
+	mRTVDescriptorSize = mDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+	UpdateRenderTargetViews(mDevice, mSwapChain, mRTVDescriptorHeap);
+	for (size_t i = 0; i < sNumFrames; ++i)
+	{
+		mCommandAllocators[i] = CreateCommandAllocator(mDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
+	}
+
+	mCommandList = CreateCommandList(mDevice, mCommandAllocators[mCurrentBackBufferIndex], D3D12_COMMAND_LIST_TYPE_DIRECT);
+
+	mFence = CreateFence(mDevice);
+	mFenceEvent = CreateEventHandle();
+
 	mFullScreen = fullscreen;
 
-	//TODO
+	// Hook application to windows procedure
+	sWindowMessageHandler.Hook(windowHandle, GraphicsSystemMessageHandler);
 }
 
 void GraphicsSystem::Terminate()
 {
+	// Make sure the command queue has finished all commands before closing.
+	Flush(mCommandQueue, mFence, mFenceValue, mFenceEvent);
+
+	mDevice.Reset();
+	mCommandList.Reset();
+	mCommandQueue.Reset();
+	mSwapChain.Reset();
+	mRTVDescriptorHeap.Reset();
+	mFence.Reset();
+	SafeDelete(mFenceEvent);
+
+	for (size_t i = 0; i < sNumFrames; i++)
+	{
+		mCommandAllocators[i].Reset();
+		mBackBuffers[i].Reset();
+	}
+
 	// Restore original windows procedure
 	sWindowMessageHandler.Unhook();
-
-	//TODO
 }
 
 void GraphicsSystem::BeginRender()
 {
-	//TODO
+	auto currentAllocator = mCommandAllocators[mCurrentBackBufferIndex];
+	auto currentBackbuffer = mBackBuffers[mCurrentBackBufferIndex];
+
+	// Before any commands can be recorded into the command list, the command allocator and command list needs to be reset to its initial state.
+	currentAllocator.Reset();
+	mCommandList->Reset(currentAllocator.Get(), nullptr);
+
+	// Clear the render target.
+	{
+		D3D12_RESOURCE_BARRIER barrier = CreateTransitionBarrier(currentBackbuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		mCommandList->ResourceBarrier(1, &barrier);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		ShiftRTVDescriptorHandle(rtvHandle, mCurrentBackBufferIndex, mRTVDescriptorSize);
+
+		mCommandList->ClearRenderTargetView(rtvHandle, &mClearColor.x, 0, nullptr);
+	}
 }
 
 void GraphicsSystem::EndRender()
 {
-	//TODO
+	auto currentBackbuffer = mBackBuffers[mCurrentBackBufferIndex];
+
+	D3D12_RESOURCE_BARRIER barrier = CreateTransitionBarrier(currentBackbuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	mCommandList->ResourceBarrier(1, &barrier);
+
+	ThrowIfFailed(mCommandList->Close());
+
+	ID3D12CommandList* const commandLists[] = {mCommandList.Get()};
+	mCommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
+
+	mFrameFenceValues[mCurrentBackBufferIndex] = Signal(mCommandQueue, mFence, mFenceValue);
+
+	uint32_t syncInterval = mVSync ? 1 : 0;
+	uint32_t presentFlag = 0; // set up present flags if needed
+	ThrowIfFailed(mSwapChain->Present(syncInterval, presentFlag));
+
+	mCurrentBackBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
+
+	WaitForFenceValue(mFence, mFrameFenceValues[mCurrentBackBufferIndex], mFenceEvent);
 }
 
-void GraphicsSystem::ToggleFullscreen()
+void GraphicsSystem::ToggleFullscreen(HWND windowHandle)
 {
-	//TODO
+	mFullScreen = !mFullScreen;
+
+
+	if (mFullScreen) // Switching to fullscreen.
+	{
+		// Store the current window dimensions so they can be restored 
+		// when switching out of fullscreen state.
+		GetWindowRect(windowHandle, &mWindowRect);
+
+		// Set the window style to a borderless window so the client area fills
+		// the entire screen.
+		UINT windowStyle = WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+
+		SetWindowLongW(windowHandle, GWL_STYLE, windowStyle);
+
+		// Query the name of the nearest display device for the window.
+		// This is required to set the fullscreen dimensions of the window
+		// when using a multi-monitor setup.
+		HMONITOR hMonitor = ::MonitorFromWindow(windowHandle, MONITOR_DEFAULTTONEAREST);
+		MONITORINFOEX monitorInfo = {};
+		monitorInfo.cbSize = sizeof(MONITORINFOEX);
+		::GetMonitorInfo(hMonitor, &monitorInfo);
+
+		::SetWindowPos(windowHandle, HWND_TOPMOST,
+			monitorInfo.rcMonitor.left,
+			monitorInfo.rcMonitor.top,
+			monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
+			monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
+			SWP_FRAMECHANGED | SWP_NOACTIVATE);
+
+		::ShowWindow(windowHandle, SW_MAXIMIZE);
+	}
+	else
+	{
+		// Restore all the window decorators.
+		::SetWindowLong(windowHandle, GWL_STYLE, WS_OVERLAPPEDWINDOW);
+
+		::SetWindowPos(windowHandle, HWND_NOTOPMOST,
+			mWindowRect.left,
+			mWindowRect.top,
+			mWindowRect.right - mWindowRect.left,
+			mWindowRect.bottom - mWindowRect.top,
+			SWP_FRAMECHANGED | SWP_NOACTIVATE);
+
+		::ShowWindow(windowHandle, SW_NORMAL);
+	}
+
 }
 
 void NFGE::Graphics::GraphicsSystem::Resize(uint32_t width, uint32_t height)
 {
-	//TODO
+	if (mWidth != width || mHeight != height)
+	{
+		// Don't allow 0 size swap chain back buffers.
+		mWidth = std::max(1u, width);
+		mHeight = std::max(1u, height);
+
+		// Flush the GPU queue to make sure the swap chain's back buffers
+		// are not being referenced by an in-flight command list.
+		Flush(mCommandQueue, mFence, mFenceValue, mFenceEvent);
+
+		for (int i = 0; i < sNumFrames; ++i)
+		{
+			// Any references to the back buffers must be released
+			// before the swap chain can be resized.
+			mBackBuffers[i].Reset();
+			mFrameFenceValues[i] = mFrameFenceValues[mCurrentBackBufferIndex];
+		}
+
+		DXGI_SWAP_CHAIN_DESC swapChainDesc{};
+		ThrowIfFailed(mSwapChain->GetDesc(&swapChainDesc));
+		ThrowIfFailed(mSwapChain->ResizeBuffers(sNumFrames, mWidth, mHeight,
+			swapChainDesc.BufferDesc.Format, swapChainDesc.Flags));
+
+		mCurrentBackBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
+
+		UpdateRenderTargetViews(mDevice, mSwapChain, mRTVDescriptorHeap);
+	}
 }
 
 void NFGE::Graphics::GraphicsSystem::ResetRenderTarget()
@@ -125,14 +291,15 @@ void NFGE::Graphics::GraphicsSystem::ResetViewport()
 
 uint32_t NFGE::Graphics::GraphicsSystem::GetBackBufferWidth() const
 {
-	//TODO
+	return mWidth;
 }
 
 uint32_t NFGE::Graphics::GraphicsSystem::GetBackBufferHeight() const
 {
-	//TODO
+	return mHeight;
 }
 
+// Private functions
 Microsoft::WRL::ComPtr<IDXGIAdapter4> NFGE::Graphics::GraphicsSystem::GetAdapter(bool useWarp, SIZE_T dedicatedVideoMemory)
 {
 	Microsoft::WRL::ComPtr<IDXGIFactory4> dxgiFactory;
@@ -167,10 +334,221 @@ Microsoft::WRL::ComPtr<IDXGIAdapter4> NFGE::Graphics::GraphicsSystem::GetAdapter
 				dxgiAdapterDesc1.DedicatedVideoMemory > dedicatedVideoMemory)
 			{
 				mMaxDedicatedVideoMemory = dxgiAdapterDesc1.DedicatedVideoMemory;
+				// It is neither safe nor reliable to perform a static_cast on COM objects.
 				ThrowIfFailed(dxgiAdapter1.As(&dxgiAdapter4));
 			}
 		}
 	}
 
 	return dxgiAdapter4;
+}
+
+Microsoft::WRL::ComPtr<ID3D12Device2> NFGE::Graphics::GraphicsSystem::CreateDevice(Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter) const
+{
+	ComPtr<ID3D12Device2> d3d12Device2;
+	ThrowIfFailed(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&d3d12Device2)));
+
+	// Enable debug messages in debug mode.
+#if defined(_DEBUG)
+	ComPtr<ID3D12InfoQueue> pInfoQueue;
+	if (SUCCEEDED(d3d12Device2.As(&pInfoQueue)))
+	{
+		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
+		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
+		pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
+
+		// Suppress whole categories of messages
+		//D3D12_MESSAGE_CATEGORY Categories[] = {};
+
+		// Suppress messages based on their severity level
+		D3D12_MESSAGE_SEVERITY Severities[] =
+		{
+			D3D12_MESSAGE_SEVERITY_INFO
+		};
+
+		// Suppress individual messages by their ID
+		D3D12_MESSAGE_ID DenyIds[] = {
+			D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,   // I'm really not sure how to avoid this message.
+			D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,                         // This warning occurs when using capture frame while graphics debugging.
+			D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,                       // This warning occurs when using capture frame while graphics debugging.
+		};
+
+		D3D12_INFO_QUEUE_FILTER NewFilter = {};
+		//NewFilter.DenyList.NumCategories = _countof(Categories);
+		//NewFilter.DenyList.pCategoryList = Categories;
+		NewFilter.DenyList.NumSeverities = _countof(Severities);
+		NewFilter.DenyList.pSeverityList = Severities;
+		NewFilter.DenyList.NumIDs = _countof(DenyIds);
+		NewFilter.DenyList.pIDList = DenyIds;
+
+		ThrowIfFailed(pInfoQueue->PushStorageFilter(&NewFilter));
+	}
+#endif
+
+	return d3d12Device2;
+}
+
+Microsoft::WRL::ComPtr<ID3D12CommandQueue> NFGE::Graphics::GraphicsSystem::CreateCommandQueue(Microsoft::WRL::ComPtr<ID3D12Device> device, D3D12_COMMAND_LIST_TYPE type) const
+{
+	ComPtr<ID3D12CommandQueue> d3d12CommandQueue;
+
+	D3D12_COMMAND_QUEUE_DESC desc = {};
+	desc.Type = type;
+	desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+	desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+	desc.NodeMask = 0;
+
+	ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&d3d12CommandQueue)));
+
+	return d3d12CommandQueue;
+}
+
+Microsoft::WRL::ComPtr<IDXGISwapChain4> NFGE::Graphics::GraphicsSystem::CreateSwapChain(HWND hWnd, Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue, uint32_t width, uint32_t height, uint32_t bufferCount) const
+{
+	ComPtr<IDXGISwapChain4> dxgiSwapChain4;
+	ComPtr<IDXGIFactory4> dxgiFactory4;
+	UINT createFactoryFlags = 0;
+#if defined(_DEBUG)
+	createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
+#endif
+
+	ThrowIfFailed(CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&dxgiFactory4)));
+
+	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+	swapChainDesc.Width = width;
+	swapChainDesc.Height = height;
+	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	swapChainDesc.Stereo = FALSE;
+	swapChainDesc.SampleDesc = { 1, 0 };
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapChainDesc.BufferCount = bufferCount;
+	swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+	swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+	// It is recommended to always allow tearing if tearing support is available.
+	//swapChainDesc.Flags = CheckTearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+
+	ComPtr<IDXGISwapChain1> swapChain1;
+	ThrowIfFailed(dxgiFactory4->CreateSwapChainForHwnd(
+		commandQueue.Get(),
+		hWnd,
+		&swapChainDesc,
+		nullptr,
+		nullptr,
+		&swapChain1));
+
+	// Disable the Alt+Enter fullscreen toggle feature. Switching to fullscreen
+	// will be handled manually.
+	ThrowIfFailed(dxgiFactory4->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER));
+
+	ThrowIfFailed(swapChain1.As(&dxgiSwapChain4));
+
+	return dxgiSwapChain4;
+}
+
+Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> NFGE::Graphics::GraphicsSystem::CreateDescriptorHeap(Microsoft::WRL::ComPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors) const
+{
+	ComPtr<ID3D12DescriptorHeap> descriptorHeap;
+
+	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+	desc.NumDescriptors = numDescriptors;
+	desc.Type = type;
+
+	ThrowIfFailed(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&descriptorHeap)));
+
+	return descriptorHeap;
+}
+
+void NFGE::Graphics::GraphicsSystem::ShiftRTVDescriptorHandle(_Out_ D3D12_CPU_DESCRIPTOR_HANDLE& handleStart, int offsetInDescriptors, uint32_t descriptorSize) const
+{
+	handleStart.ptr += offsetInDescriptors * descriptorSize;
+}
+
+void NFGE::Graphics::GraphicsSystem::UpdateRenderTargetViews(Microsoft::WRL::ComPtr<ID3D12Device2> device, Microsoft::WRL::ComPtr<IDXGISwapChain4> swapChain, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap)
+{
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+
+	for (int i = 0; i < sNumFrames; ++i)
+	{
+		ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&mBackBuffers[i])));
+
+		device->CreateRenderTargetView(mBackBuffers[i].Get(), nullptr, rtvHandle);
+
+		// set offset
+		ASSERT(mRTVDescriptorSize != 0, "Unexpect RTVDescriptorSize.");
+		rtvHandle.ptr += mRTVDescriptorSize;
+	}
+}
+
+Microsoft::WRL::ComPtr<ID3D12CommandAllocator> NFGE::Graphics::GraphicsSystem::CreateCommandAllocator(Microsoft::WRL::ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type) const
+{
+	ComPtr<ID3D12CommandAllocator> commandAllocator;
+	ThrowIfFailed(device->CreateCommandAllocator(type, IID_PPV_ARGS(&commandAllocator)));
+
+	return commandAllocator;
+}
+
+ComPtr<ID3D12GraphicsCommandList> NFGE::Graphics::GraphicsSystem::CreateCommandList(ComPtr<ID3D12Device2> device, ComPtr<ID3D12CommandAllocator> commandAllocator, D3D12_COMMAND_LIST_TYPE type) const
+{
+	ComPtr<ID3D12GraphicsCommandList> commandList;
+	ThrowIfFailed(device->CreateCommandList(0, type, commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList)));
+
+	ThrowIfFailed(commandList->Close());
+
+	return commandList;
+}
+
+D3D12_RESOURCE_BARRIER NFGE::Graphics::GraphicsSystem::CreateTransitionBarrier(ComPtr<ID3D12Resource> resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter, UINT subresource, D3D12_RESOURCE_BARRIER_FLAGS flags) const
+{
+	D3D12_RESOURCE_BARRIER result;
+	ZeroMemory(&result, sizeof(result));
+	result.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	result.Flags = flags;
+	result.Transition.pResource = resource.Get();
+	result.Transition.StateBefore = stateBefore;
+	result.Transition.StateAfter = stateAfter;
+	result.Transition.Subresource = subresource;
+	return result;
+}
+
+ComPtr<ID3D12Fence> NFGE::Graphics::GraphicsSystem::CreateFence(ComPtr<ID3D12Device2> device) const
+{
+	ComPtr<ID3D12Fence> fence;
+
+	ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+
+	return fence;
+}
+
+HANDLE NFGE::Graphics::GraphicsSystem::CreateEventHandle() const
+{
+	HANDLE fenceEvent;
+
+	fenceEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+	ASSERT(fenceEvent, "Failed to create fence event.");
+
+	return fenceEvent;
+}
+
+uint64_t NFGE::Graphics::GraphicsSystem::Signal(ComPtr<ID3D12CommandQueue> commandQueue, ComPtr<ID3D12Fence> fence, uint64_t& fenceValue) const
+{
+	uint64_t fenceValueForSignal = ++fenceValue;
+	ThrowIfFailed(commandQueue->Signal(fence.Get(), fenceValueForSignal));
+
+	return fenceValueForSignal;
+}
+
+void NFGE::Graphics::GraphicsSystem::WaitForFenceValue(ComPtr<ID3D12Fence> fence, uint64_t fenceValue, HANDLE fenceEvent, std::chrono::milliseconds duration) const
+{
+	if (fence->GetCompletedValue() < fenceValue)
+	{
+		ThrowIfFailed(fence->SetEventOnCompletion(fenceValue, fenceEvent));
+		::WaitForSingleObject(fenceEvent, static_cast<DWORD>(duration.count()));
+	}
+}
+
+void NFGE::Graphics::GraphicsSystem::Flush(ComPtr<ID3D12CommandQueue> commandQueue, ComPtr<ID3D12Fence> fence, uint64_t& fenceValue, HANDLE fenceEvent) const
+{
+	uint64_t fenceValueForSignal = Signal(commandQueue, fence, fenceValue);
+	WaitForFenceValue(fence, fenceValueForSignal, fenceEvent);
 }

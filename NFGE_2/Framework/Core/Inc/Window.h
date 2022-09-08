@@ -23,6 +23,8 @@ namespace NFGE {
 			bool ProcessMessage();
 
 			HWND GetWindowHandle() const { return mWindow; }
+			RECT GetWindowRECT() const { return mWindowRect; }
+			RECT& GetWindowRECTRef() { return mWindowRect; }
 
 		private:
 			//Default members initializtion

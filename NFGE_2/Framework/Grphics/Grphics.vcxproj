@@ -138,6 +138,7 @@
     <ClInclude Include="Inc\Camera.h" />
     <ClInclude Include="Inc\Colors.h" />
     <ClInclude Include="Inc\Common.h" />
+    <ClInclude Include="Inc\d3dx12.h" />
     <ClInclude Include="Inc\Graphics.h" />
     <ClInclude Include="Inc\GraphicsSystem.h" />
     <ClInclude Include="Src\Precompiled.h" />
@@ -147,6 +148,17 @@
     <ClCompile Include="Src\Precompiled.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\External\DirectXTK12\DirectXTK_Desktop_2022_Win10.vcxproj">
+      <Project>{3e0e8608-cd9b-4c76-af33-29ca38f2c9f0}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\External\ImGui\ImGui.vcxproj">
+      <Project>{bff9c813-01af-43b3-a23e-2c62f332b994}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Core\Core.vcxproj">
+      <Project>{08ebedda-74d0-4990-a74f-646e37c8b275}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
