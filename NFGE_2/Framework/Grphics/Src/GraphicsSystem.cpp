@@ -466,19 +466,18 @@ void NFGE::Graphics::GraphicsSystem::ShiftRTVDescriptorHandle(_Out_ D3D12_CPU_DE
 
 void NFGE::Graphics::GraphicsSystem::UpdateRenderTargetViews(Microsoft::WRL::ComPtr<ID3D12Device2> device, Microsoft::WRL::ComPtr<IDXGISwapChain4> swapChain, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap)
 {
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle (descriptorHeap->GetCPUDescriptorHandleForHeapStart());
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
 
 	for (int i = 0; i < sNumFrames; ++i)
 	{
 		ComPtr<ID3D12Resource> backBuffer;
-		ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer)));
+		ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&mBackBuffers[i])));
 
-		device->CreateRenderTargetView(backBuffer.Get(), nullptr, rtvHandle);
+		device->CreateRenderTargetView(mBackBuffers[i].Get(), nullptr, rtvHandle);
 
-		mBackBuffers[i] = backBuffer;
 		// set offset
 		ASSERT(mRTVDescriptorSize != 0, "Unexpect RTVDescriptorSize.");
-		rtvHandle.Offset(mRTVDescriptorSize);
+		rtvHandle.ptr += mRTVDescriptorSize;
 	}
 }
 
