@@ -13,6 +13,9 @@
     <Filter Include="Inc\Camera">
       <UniqueIdentifier>{668e32dd-9a56-406c-9f07-dc4b17971700}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Inc\NFGE_D3d12">
+      <UniqueIdentifier>{0a3a6c5f-5ff3-4821-9cc5-f092378bc99d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Inc\Common.h">
@@ -34,7 +37,10 @@
       <Filter>Inc\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Inc\d3dx12.h">
-      <Filter>Inc</Filter>
+      <Filter>Inc\NFGE_D3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\CommandQueue.h">
+      <Filter>Inc\NFGE_D3d12</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

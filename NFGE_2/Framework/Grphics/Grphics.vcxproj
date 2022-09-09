@@ -137,6 +137,7 @@
   <ItemGroup>
     <ClInclude Include="Inc\Camera.h" />
     <ClInclude Include="Inc\Colors.h" />
+    <ClInclude Include="Inc\CommandQueue.h" />
     <ClInclude Include="Inc\Common.h" />
     <ClInclude Include="Inc\d3dx12.h" />
     <ClInclude Include="Inc\Graphics.h" />
