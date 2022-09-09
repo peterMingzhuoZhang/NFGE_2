@@ -141,7 +141,7 @@ void GraphicsSystem::Terminate()
 	mSwapChain.Reset();
 	mRTVDescriptorHeap.Reset();
 	mFence.Reset();
-	SafeDelete(mFenceEvent);
+	CloseHandle(mFenceEvent);
 
 	for (size_t i = 0; i < sNumFrames; i++)
 	{
@@ -159,7 +159,7 @@ void GraphicsSystem::BeginRender()
 	auto currentBackbuffer = mBackBuffers[mCurrentBackBufferIndex];
 
 	// Before any commands can be recorded into the command list, the command allocator and command list needs to be reset to its initial state.
-	currentAllocator.Reset();
+	currentAllocator->Reset();
 	mCommandList->Reset(currentAllocator.Get(), nullptr);
 
 	// Clear the render target.
@@ -466,17 +466,19 @@ void NFGE::Graphics::GraphicsSystem::ShiftRTVDescriptorHandle(_Out_ D3D12_CPU_DE
 
 void NFGE::Graphics::GraphicsSystem::UpdateRenderTargetViews(Microsoft::WRL::ComPtr<ID3D12Device2> device, Microsoft::WRL::ComPtr<IDXGISwapChain4> swapChain, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap)
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle (descriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
 	for (int i = 0; i < sNumFrames; ++i)
 	{
-		ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&mBackBuffers[i])));
+		ComPtr<ID3D12Resource> backBuffer;
+		ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer)));
 
-		device->CreateRenderTargetView(mBackBuffers[i].Get(), nullptr, rtvHandle);
+		device->CreateRenderTargetView(backBuffer.Get(), nullptr, rtvHandle);
 
+		mBackBuffers[i] = backBuffer;
 		// set offset
 		ASSERT(mRTVDescriptorSize != 0, "Unexpect RTVDescriptorSize.");
-		rtvHandle.ptr += mRTVDescriptorSize;
+		rtvHandle.Offset(mRTVDescriptorSize);
 	}
 }
 

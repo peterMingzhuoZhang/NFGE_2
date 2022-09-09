@@ -1,12 +1,12 @@
 #include <Core\Inc\Core.h>
 #include <Grphics/Inc/Graphics.h>
 
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
 	NFGE::Core::Window myWindow;
 	myWindow.Initialize(hInstance, "Hello Window", 1280, 720);
-    auto handle = myWindow.GetWindowHandle();
-    NFGE::Graphics::GraphicsSystem::StaticInitialize(myWindow, true, false);
+    NFGE::Graphics::GraphicsSystem::StaticInitialize(myWindow, true, false, 0);
 
 	bool done = false;
 
@@ -41,10 +41,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         
         NFGE::Graphics::GraphicsSystem::Get()->BeginRender();
         NFGE::Graphics::GraphicsSystem::Get()->EndRender();
-
 	}
 
-    NFGE::Graphics::GraphicsSystem::Get()->StaticTerminate();
+    NFGE::Graphics::GraphicsSystem::StaticTerminate();
 
 	myWindow.Terminate();
 	return 0;

@@ -43,7 +43,7 @@ void NFGE::Core::Window::Initialize(HINSTANCE instance, LPCSTR appName, uint32_t
 	WNDCLASSEXA wcex;
 	wcex.cbSize = sizeof(WNDCLASSEXA);
 	wcex.style = CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc = WinProc;
+	wcex.lpfnWndProc = &WinProc;
 	wcex.cbClsExtra = 0;
 	wcex.cbWndExtra = 0;
 	wcex.hInstance = instance;

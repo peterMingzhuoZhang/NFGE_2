@@ -83,7 +83,7 @@ namespace NFGE::Graphics {
 		HANDLE mFenceEvent{ nullptr };
 
 		// Graphic controls
-		Color mClearColor{ 0.0f,0.0f,0.0f,0.0f };
+		Color mClearColor{ 0.23f,0.34f,0.17f,0.0f };
 		uint32_t mWidth{ 0 };
 		uint32_t mHeight{ 0 };
 		bool mVSync{ true };
