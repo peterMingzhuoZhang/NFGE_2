@@ -8,10 +8,10 @@
 #include "Precompiled.h"
 #include "CommandQueue.h"
 
-using namespace NFGE::Graphic;
+using namespace NFGE::Graphics;
 using namespace Microsoft::WRL;
 
-NFGE::Graphic::CommandQueue::CommandQueue(Microsoft::WRL::ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type)
+NFGE::Graphics::CommandQueue::CommandQueue(Microsoft::WRL::ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type)
 	: mFenceValue(0)
 	, mCommandListType(type)
 	, mD3d12Device(device)
@@ -29,7 +29,15 @@ NFGE::Graphic::CommandQueue::CommandQueue(Microsoft::WRL::ComPtr<ID3D12Device2> 
 	ASSERT(mFenceEvent, "Failed to create fence event handle.");
 }
 
-Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> NFGE::Graphic::CommandQueue::GetCommandList()
+NFGE::Graphics::CommandQueue::~CommandQueue()
+{
+	mD3d12Device.Reset();
+	mD3d12CommandQueue.Reset();
+	mD3d12Fence.Reset();
+	CloseHandle(mFenceEvent);
+}
+
+Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> NFGE::Graphics::CommandQueue::GetCommandList()
 {
 	ComPtr<ID3D12CommandAllocator> commandAllocator;
 	ComPtr<ID3D12GraphicsCommandList2> commandList;
@@ -65,7 +73,7 @@ Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> NFGE::Graphic::CommandQueue::
 	return commandList;
 }
 
-uint64_t NFGE::Graphic::CommandQueue::ExecuteCommandList(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList)
+uint64_t NFGE::Graphics::CommandQueue::ExecuteCommandList(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList)
 {
 	commandList->Close();
 
@@ -91,7 +99,38 @@ uint64_t NFGE::Graphic::CommandQueue::ExecuteCommandList(Microsoft::WRL::ComPtr<
 	return fenceValue;
 }
 
-Microsoft::WRL::ComPtr<ID3D12CommandAllocator> NFGE::Graphic::CommandQueue::CreateCommandAllocator()
+uint64_t NFGE::Graphics::CommandQueue::Signal()
+{
+	uint64_t fenceValue = ++mFenceValue;
+	mD3d12CommandQueue->Signal(mD3d12Fence.Get(), fenceValue);
+	return fenceValue;
+}
+
+bool NFGE::Graphics::CommandQueue::IsFenceComplete(uint64_t fenceValue)
+{
+	return mD3d12Fence->GetCompletedValue() >= fenceValue;
+}
+
+void NFGE::Graphics::CommandQueue::WaitForFenceValue(uint64_t fenceValue)
+{
+	if (!IsFenceComplete(fenceValue))
+	{
+		mD3d12Fence->SetEventOnCompletion(fenceValue, mFenceEvent);
+		::WaitForSingleObject(mFenceEvent, DWORD_MAX);
+	}
+}
+
+void NFGE::Graphics::CommandQueue::Flush()
+{
+	WaitForFenceValue(Signal());
+}
+
+Microsoft::WRL::ComPtr<ID3D12CommandQueue> NFGE::Graphics::CommandQueue::GetD3D12CommandQueue() const
+{
+	return mD3d12CommandQueue;
+}
+
+Microsoft::WRL::ComPtr<ID3D12CommandAllocator> NFGE::Graphics::CommandQueue::CreateCommandAllocator()
 {
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
 	ThrowIfFailed(mD3d12Device->CreateCommandAllocator(mCommandListType, IID_PPV_ARGS(&commandAllocator)));
@@ -99,7 +138,7 @@ Microsoft::WRL::ComPtr<ID3D12CommandAllocator> NFGE::Graphic::CommandQueue::Crea
 	return commandAllocator;
 }
 
-Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> NFGE::Graphic::CommandQueue::CreateCommandList(Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator)
+Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> NFGE::Graphics::CommandQueue::CreateCommandList(Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator)
 {
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList;
 	ThrowIfFailed(mD3d12Device->CreateCommandList(0, mCommandListType, allocator.Get(), nullptr, IID_PPV_ARGS(&commandList)));

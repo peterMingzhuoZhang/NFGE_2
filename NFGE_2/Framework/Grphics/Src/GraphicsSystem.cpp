@@ -6,6 +6,8 @@
 
 #include "Precompiled.h"
 #include "GraphicsSystem.h"
+#include "d3dx12.h"
+#include "D3DUtil.h"
 
 using namespace NFGE;
 using namespace NFGE::Graphics;
@@ -100,13 +102,18 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 
 	ComPtr<IDXGIAdapter4> dxgiAdapter4 = GetAdapter(useWarp, dedicatedVideoMemory);
 	mDevice = CreateDevice(dxgiAdapter4);
-	mCommandQueue = CreateCommandQueue(mDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
+	if (mDevice)
+	{
+		mDirectCommandQueue = std::make_unique<CommandQueue>(mDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
+		mComputeCommandQueue = std::make_unique<CommandQueue>(mDevice, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+		mCopyCommandQueue = std::make_unique<CommandQueue>(mDevice, D3D12_COMMAND_LIST_TYPE_COPY);
+	}
 	
 	mWindowRect = window.GetWindowRECT();
 	mHeight = (uint32_t)(mWindowRect.bottom - mWindowRect.top);
 	mWidth = (uint32_t)(mWindowRect.right - mWindowRect.left);
 	HWND windowHandle = window.GetWindowHandle();
-	mSwapChain = CreateSwapChain(windowHandle, mCommandQueue, mWidth, mHeight, sNumFrames);
+	mSwapChain = CreateSwapChain(windowHandle, mDirectCommandQueue->GetD3D12CommandQueue(), mWidth, mHeight, sNumFrames);
 
 	mCurrentBackBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 
@@ -114,12 +121,6 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 	mRTVDescriptorSize = mDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 	UpdateRenderTargetViews(mDevice, mSwapChain, mRTVDescriptorHeap);
-	for (size_t i = 0; i < sNumFrames; ++i)
-	{
-		mCommandAllocators[i] = CreateCommandAllocator(mDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
-	}
-
-	mCommandList = CreateCommandList(mDevice, mCommandAllocators[mCurrentBackBufferIndex], D3D12_COMMAND_LIST_TYPE_DIRECT);
 
 	mFence = CreateFence(mDevice);
 	mFenceEvent = CreateEventHandle();
@@ -133,11 +134,9 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 void GraphicsSystem::Terminate()
 {
 	// Make sure the command queue has finished all commands before closing.
-	Flush(mCommandQueue, mFence, mFenceValue, mFenceEvent);
+	Flush();
 
 	mDevice.Reset();
-	mCommandList.Reset();
-	mCommandQueue.Reset();
 	mSwapChain.Reset();
 	mRTVDescriptorHeap.Reset();
 	mFence.Reset();
@@ -145,7 +144,6 @@ void GraphicsSystem::Terminate()
 
 	for (size_t i = 0; i < sNumFrames; i++)
 	{
-		mCommandAllocators[i].Reset();
 		mBackBuffers[i].Reset();
 	}
 
@@ -153,40 +151,36 @@ void GraphicsSystem::Terminate()
 	sWindowMessageHandler.Unhook();
 }
 
-void GraphicsSystem::BeginRender()
+void GraphicsSystem::BeginRender(RenderType type)
 {
-	auto currentAllocator = mCommandAllocators[mCurrentBackBufferIndex];
 	auto currentBackbuffer = mBackBuffers[mCurrentBackBufferIndex];
-
-	// Before any commands can be recorded into the command list, the command allocator and command list needs to be reset to its initial state.
-	currentAllocator->Reset();
-	mCommandList->Reset(currentAllocator.Get(), nullptr);
+	auto commandQueue = NFGE::Graphics::GetCommandQueue(static_cast<D3D12_COMMAND_LIST_TYPE>(type));
+	mCurrentCommandList = commandQueue->GetCommandList();
 
 	// Clear the render target.
 	{
 		D3D12_RESOURCE_BARRIER barrier = CreateTransitionBarrier(currentBackbuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		mCommandList->ResourceBarrier(1, &barrier);
+		mCurrentCommandList->ResourceBarrier(1, &barrier);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 		ShiftRTVDescriptorHandle(rtvHandle, mCurrentBackBufferIndex, mRTVDescriptorSize);
 
-		mCommandList->ClearRenderTargetView(rtvHandle, &mClearColor.x, 0, nullptr);
+		mCurrentCommandList->ClearRenderTargetView(rtvHandle, &mClearColor.x, 0, nullptr);
 	}
 }
 
-void GraphicsSystem::EndRender()
+void GraphicsSystem::EndRender(RenderType type)
 {
+	auto commandQueue = NFGE::Graphics::GetCommandQueue(static_cast<D3D12_COMMAND_LIST_TYPE>(type));
 	auto currentBackbuffer = mBackBuffers[mCurrentBackBufferIndex];
 
 	D3D12_RESOURCE_BARRIER barrier = CreateTransitionBarrier(currentBackbuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-	mCommandList->ResourceBarrier(1, &barrier);
+	mCurrentCommandList->ResourceBarrier(1, &barrier);
 
-	ThrowIfFailed(mCommandList->Close());
+	ThrowIfFailed(mCurrentCommandList->Close());
 
-	ID3D12CommandList* const commandLists[] = {mCommandList.Get()};
-	mCommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
-
-	mFrameFenceValues[mCurrentBackBufferIndex] = Signal(mCommandQueue, mFence, mFenceValue);
+	ID3D12CommandList* const commandLists[] = { mCurrentCommandList.Get()};
+	mFrameFenceValues[mCurrentBackBufferIndex] = commandQueue->ExecuteCommandList(mCurrentCommandList);
 
 	uint32_t syncInterval = mVSync ? 1 : 0;
 	uint32_t presentFlag = 0; // set up present flags if needed
@@ -194,7 +188,7 @@ void GraphicsSystem::EndRender()
 
 	mCurrentBackBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 
-	WaitForFenceValue(mFence, mFrameFenceValues[mCurrentBackBufferIndex], mFenceEvent);
+	commandQueue->WaitForFenceValue(mFrameFenceValues[mCurrentBackBufferIndex]);
 }
 
 void GraphicsSystem::ToggleFullscreen(HWND windowHandle)
@@ -258,7 +252,7 @@ void NFGE::Graphics::GraphicsSystem::Resize(uint32_t width, uint32_t height)
 
 		// Flush the GPU queue to make sure the swap chain's back buffers
 		// are not being referenced by an in-flight command list.
-		Flush(mCommandQueue, mFence, mFenceValue, mFenceEvent);
+		Flush();
 
 		for (int i = 0; i < sNumFrames; ++i)
 		{
@@ -297,6 +291,12 @@ uint32_t NFGE::Graphics::GraphicsSystem::GetBackBufferWidth() const
 uint32_t NFGE::Graphics::GraphicsSystem::GetBackBufferHeight() const
 {
 	return mHeight;
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE NFGE::Graphics::GraphicsSystem::GetCurrentRenderTargetView() const
+{
+	return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+		mCurrentBackBufferIndex, mRTVDescriptorSize);
 }
 
 // Private functions
@@ -552,4 +552,11 @@ void NFGE::Graphics::GraphicsSystem::Flush(ComPtr<ID3D12CommandQueue> commandQue
 {
 	uint64_t fenceValueForSignal = Signal(commandQueue, fence, fenceValue);
 	WaitForFenceValue(fence, fenceValueForSignal, fenceEvent);
+}
+
+void NFGE::Graphics::GraphicsSystem::Flush()
+{
+	mDirectCommandQueue->Flush();
+	mComputeCommandQueue->Flush();
+	mCopyCommandQueue->Flush();
 }

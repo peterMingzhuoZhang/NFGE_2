@@ -9,7 +9,7 @@
 
 #include <queue>
 
-namespace NFGE::Graphic {
+namespace NFGE::Graphics {
     class CommandQueue
     {
     public:

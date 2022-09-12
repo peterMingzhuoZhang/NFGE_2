@@ -7,10 +7,18 @@
 #pragma once
 
 #include "Colors.h"
+#include "CommandQueue.h"
 
 namespace NFGE::Graphics {
 	using namespace Microsoft::WRL;
 	
+	enum class RenderType
+	{
+		Direct = D3D12_COMMAND_LIST_TYPE_DIRECT,
+		Compute = D3D12_COMMAND_LIST_TYPE_COMPUTE,
+		Copy = D3D12_COMMAND_LIST_TYPE_COPY
+	};
+
 	class GraphicsSystem
 	{
 	public:
@@ -28,8 +36,8 @@ namespace NFGE::Graphics {
 		void Initialize(const NFGE::Core::Window& window, bool fullscreen, bool useWarp, SIZE_T dedicatedVideoMemory);
 		void Terminate();
 
-		void BeginRender();
-		void EndRender();
+		void BeginRender(RenderType type);
+		void EndRender(RenderType type);
 
 		void ToggleFullscreen(HWND WindowHandle);
 		void Resize(uint32_t width, uint32_t height);
@@ -43,32 +51,46 @@ namespace NFGE::Graphics {
 
 		uint32_t GetBackBufferWidth() const;
 		uint32_t GetBackBufferHeight() const;
+		UINT GetCurrentBackBufferIndex() const { return mCurrentBackBufferIndex; };
+		ComPtr<ID3D12Resource> GetCurrentBackBuffer() const { return mBackBuffers[mCurrentBackBufferIndex]; };
+		D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRenderTargetView() const;
+		ComPtr<ID3D12GraphicsCommandList2> GetCurrentCommandList() const { return mCurrentCommandList; }
 
-		
+		// Transition a resource
+		void TransitionResource(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
+			Microsoft::WRL::ComPtr<ID3D12Resource> resource,
+			D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState);
+
+		// Clear a render target view.
+		void ClearRTV(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
+			D3D12_CPU_DESCRIPTOR_HANDLE rtv, FLOAT* clearColor);
+
+		// Clear the depth of a depth-stencil view.
+		void ClearDepth(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
+			D3D12_CPU_DESCRIPTOR_HANDLE dsv, FLOAT depth = 1.0f);
+
+		// Create a GPU buffer.
+		void UpdateBufferResource(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
+			ID3D12Resource** pDestinationResource, ID3D12Resource** pIntermediateResource,
+			size_t numElements, size_t elementSize, const void* bufferData,
+			D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
+
 	private:
 		static const uint8_t sNumFrames = 3;
 
 		friend LRESULT CALLBACK GraphicsSystemMessageHandler(HWND window, UINT message, WPARAM wPrarm, LPARAM lParam);
-		//friend ID3D11Device* GetDevice();
-		//friend ID3D11DeviceContext* GetContext();
-		//
-		//ID3D11Device* mD3ddDevice{ nullptr };
-		//ID3D11DeviceContext* mImmediateContext{ nullptr };
-		//
-		//IDXGISwapChain* mSwapChain{ nullptr };
-		//ID3D11RenderTargetView* mRenderTargetView{ nullptr };
-		//
-		//ID3D11Texture2D* mDepthStencilBuffer{ nullptr };
-		//ID3D11DepthStencilView* mDepthStencilView{ nullptr };
-		//
-		//DXGI_SWAP_CHAIN_DESC mSwapChainDesc;
-		//D3D11_VIEWPORT mViewport;
+		friend ComPtr<ID3D12Device2> GetDevice();
+		friend CommandQueue* GetCommandQueue(D3D12_COMMAND_LIST_TYPE type);
+		friend void Flush();
 
 		// DirectX 12 Objects
 		ComPtr<ID3D12Device2> mDevice{ nullptr };
-		ComPtr<ID3D12CommandAllocator> mCommandAllocators[sNumFrames]{ nullptr };
-		ComPtr<ID3D12GraphicsCommandList> mCommandList{ nullptr };
-		ComPtr<ID3D12CommandQueue> mCommandQueue{ nullptr };
+		//ComPtr<ID3D12CommandAllocator> mCommandAllocators[sNumFrames]{ nullptr };
+		ComPtr<ID3D12GraphicsCommandList2> mCurrentCommandList{ nullptr };
+		//ComPtr<ID3D12CommandQueue> mCommandQueue{ nullptr };
+		std::unique_ptr<CommandQueue> mDirectCommandQueue{ nullptr };
+		std::unique_ptr<CommandQueue> mComputeCommandQueue{ nullptr };
+		std::unique_ptr<CommandQueue> mCopyCommandQueue{ nullptr };
 		ComPtr<IDXGISwapChain4> mSwapChain{ nullptr };
 		ComPtr<ID3D12Resource> mBackBuffers[sNumFrames]{ nullptr };
 		ComPtr<ID3D12DescriptorHeap> mRTVDescriptorHeap{ nullptr };
@@ -106,6 +128,7 @@ namespace NFGE::Graphics {
 		uint64_t Signal(ComPtr<ID3D12CommandQueue> commandQueue, ComPtr<ID3D12Fence> fence, uint64_t& fenceValue) const;
 		void WaitForFenceValue(ComPtr<ID3D12Fence> fence, uint64_t fenceValue, HANDLE fenceEvent, std::chrono::milliseconds duration = std::chrono::milliseconds::max()) const;
 		void Flush(ComPtr<ID3D12CommandQueue> commandQueue, ComPtr<ID3D12Fence> fence, uint64_t& fenceValue, HANDLE fenceEvent) const;
+		void Flush();
 	};
 
 } // namespace NFGE::Graphics
