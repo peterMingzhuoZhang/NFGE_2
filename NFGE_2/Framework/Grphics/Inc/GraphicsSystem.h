@@ -7,7 +7,6 @@
 #pragma once
 
 #include "Colors.h"
-#include "d3dx12.h"
 
 namespace NFGE::Graphics {
 	using namespace Microsoft::WRL;

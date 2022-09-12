@@ -16,6 +16,9 @@
     <Filter Include="Inc\NFGE_D3d12">
       <UniqueIdentifier>{0a3a6c5f-5ff3-4821-9cc5-f092378bc99d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Src\NFGE_D3d12">
+      <UniqueIdentifier>{1b00ecd9-38c1-4161-bb72-0250a14c22bb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Inc\Common.h">
@@ -49,6 +52,9 @@
     </ClCompile>
     <ClCompile Include="Src\GraphicsSystem.cpp">
       <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\CommandQueue.cpp">
+      <Filter>Src\NFGE_D3d12</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
