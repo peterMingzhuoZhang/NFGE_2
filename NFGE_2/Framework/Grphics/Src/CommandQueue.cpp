@@ -88,7 +88,7 @@ uint64_t NFGE::Graphics::CommandQueue::ExecuteCommandList(Microsoft::WRL::ComPtr
 	mD3d12CommandQueue->ExecuteCommandLists(1, ppCommandLists);
 	uint64_t fenceValue = Signal();
 
-	mCommandAllocatorQueue.emplace(CommandAllocatorEntry{ fenceValue, commandAllocator });
+	mCommandAllocatorQueue.emplace(CommandAllocatorEntry{ fenceValue, Microsoft::WRL::ComPtr<ID3D12CommandAllocator>(commandAllocator) });
 	mCommandListQueue.push(commandList);
 
 	// The ownership of the command allocator has been transferred to the ComPtr

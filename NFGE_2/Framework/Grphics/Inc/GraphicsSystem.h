@@ -74,9 +74,13 @@ namespace NFGE::Graphics {
 			ID3D12Resource** pDestinationResource, ID3D12Resource** pIntermediateResource,
 			size_t numElements, size_t elementSize, const void* bufferData,
 			D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
-
-	private:
+		
 		static const uint8_t sNumFrames = 3;
+		uint64_t mFrameFenceValues[sNumFrames]{ 0 };
+		ComPtr<IDXGISwapChain4> mSwapChain{ nullptr };
+		UINT mCurrentBackBufferIndex{ 0 };
+	private:
+		//static const uint8_t sNumFrames = 3;
 
 		friend LRESULT CALLBACK GraphicsSystemMessageHandler(HWND window, UINT message, WPARAM wPrarm, LPARAM lParam);
 		friend ComPtr<ID3D12Device2> GetDevice();
@@ -91,16 +95,16 @@ namespace NFGE::Graphics {
 		std::unique_ptr<CommandQueue> mDirectCommandQueue{ nullptr };
 		std::unique_ptr<CommandQueue> mComputeCommandQueue{ nullptr };
 		std::unique_ptr<CommandQueue> mCopyCommandQueue{ nullptr };
-		ComPtr<IDXGISwapChain4> mSwapChain{ nullptr };
+		//ComPtr<IDXGISwapChain4> mSwapChain{ nullptr };
 		ComPtr<ID3D12Resource> mBackBuffers[sNumFrames]{ nullptr };
 		ComPtr<ID3D12DescriptorHeap> mRTVDescriptorHeap{ nullptr };
 		UINT mRTVDescriptorSize{ 0 };
-		UINT mCurrentBackBufferIndex{ 0 };
+		//UINT mCurrentBackBufferIndex{ 0 };
 
 		// Synchronization objects
 		ComPtr<ID3D12Fence> mFence{ nullptr };
 		uint64_t mFenceValue{ 0 };
-		uint64_t mFrameFenceValues[sNumFrames]{ 0 };
+		//uint64_t mFrameFenceValues[sNumFrames]{ 0 };
 		HANDLE mFenceEvent{ nullptr };
 
 		// Graphic controls

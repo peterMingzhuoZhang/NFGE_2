@@ -173,13 +173,14 @@ void GraphicsSystem::EndRender(RenderType type)
 {
 	auto commandQueue = NFGE::Graphics::GetCommandQueue(static_cast<D3D12_COMMAND_LIST_TYPE>(type));
 	auto currentBackbuffer = mBackBuffers[mCurrentBackBufferIndex];
+	mCurrentCommandList = commandQueue->GetCommandList();
 
 	D3D12_RESOURCE_BARRIER barrier = CreateTransitionBarrier(currentBackbuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	mCurrentCommandList->ResourceBarrier(1, &barrier);
 
 	ThrowIfFailed(mCurrentCommandList->Close());
 
-	ID3D12CommandList* const commandLists[] = { mCurrentCommandList.Get()};
+	//ID3D12CommandList* const commandLists[] = { mCurrentCommandList.Get()};
 	mFrameFenceValues[mCurrentBackBufferIndex] = commandQueue->ExecuteCommandList(mCurrentCommandList);
 
 	uint32_t syncInterval = mVSync ? 1 : 0;

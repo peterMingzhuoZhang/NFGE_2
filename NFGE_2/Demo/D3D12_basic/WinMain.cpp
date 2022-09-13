@@ -311,24 +311,27 @@ void ClearDepth(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
 void Render() 
 {
     auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
-    //auto commandQueue = NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-    auto commandList = graphicSystem->GetCurrentCommandList();
+    auto commandQueue = NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    auto commandList = commandQueue->GetCommandList();
 
-    //UINT currentBackBufferIndex = graphicSystem->GetCurrentBackBufferIndex();
-    //auto backBuffer = graphicSystem->GetCurrentBackBuffer();
+    UINT currentBackBufferIndex = graphicSystem->mSwapChain->GetCurrentBackBufferIndex();
+    graphicSystem->mCurrentBackBufferIndex = currentBackBufferIndex;
+    auto backBuffer = graphicSystem->GetCurrentBackBuffer();
     auto rtv = graphicSystem->GetCurrentRenderTargetView();
     auto dsv = DSVHeap->GetCPUDescriptorHandleForHeapStart();
 
-    //// Clear the render targets.
-    //{
-    //    TransitionResource(commandList, backBuffer,
-    //        D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    // Clear the render targets.
+    {
+        TransitionResource(commandList, backBuffer,
+            D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-    //    FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
+        FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
 
-    //    ClearRTV(commandList, rtv, clearColor);
-    graphicSystem->BeginRender(NFGE::Graphics::RenderType::Direct);
-    ClearDepth(commandList, dsv);
+        ClearRTV(commandList, rtv, clearColor);
+        ClearDepth(commandList, dsv);
+    }
+    //graphicSystem->BeginRender(NFGE::Graphics::RenderType::Direct);
+
     //}
 
 	commandList->SetPipelineState(pipelineState.Get());
@@ -348,18 +351,20 @@ void Render()
     commandList->DrawIndexedInstanced(_countof(cubeIndicies), 1, 0, 0, 0);
 
     // Present
-    /*{
+    {
         TransitionResource(commandList, backBuffer,
             D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
-        mFenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
+        graphicSystem->mFrameFenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
 
-        currentBackBufferIndex = m_pWindow->Present();
+        graphicSystem->mSwapChain->Present(1,0);
+        currentBackBufferIndex = graphicSystem->mSwapChain->GetCurrentBackBufferIndex();
+        graphicSystem->mCurrentBackBufferIndex = currentBackBufferIndex;
 
-        commandQueue->WaitForFenceValue(m_FenceValues[currentBackBufferIndex]);
-    }*/
+        commandQueue->WaitForFenceValue(graphicSystem->mFrameFenceValues[currentBackBufferIndex]);
+    }
 
-    graphicSystem->EndRender(NFGE::Graphics::RenderType::Direct);
+    //graphicSystem->EndRender(NFGE::Graphics::RenderType::Direct);
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)

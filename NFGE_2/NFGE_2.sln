@@ -28,9 +28,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Assets", "Assets", "{5886F163-7B7D-467D-AB1B-9AD9CAAB96F1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shaders", "Shaders", "{7095640A-FCE0-4EC8-9594-C98510198C6A}"
-	ProjectSection(SolutionItems) = preProject
-		TestShader.hlsl = TestShader.hlsl
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
