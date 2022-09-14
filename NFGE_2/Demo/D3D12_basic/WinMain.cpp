@@ -13,11 +13,6 @@ D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
 Microsoft::WRL::ComPtr<ID3D12Resource> indexBuffer;
 D3D12_INDEX_BUFFER_VIEW indexBufferView;
 
-// Depth buffer.
-//Microsoft::WRL::ComPtr<ID3D12Resource> depthBuffer;
-// Descriptor heap for depth buffer.
-//Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DSVHeap;
-// Root signature
 Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature;
 
 // Pipeline state object.
@@ -224,28 +219,8 @@ void ClearDepth(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
 void Render() 
 {
     auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
-    auto commandQueue = NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-    //auto commandList = commandQueue->GetCommandList();
 
-    //UINT currentBackBufferIndex = graphicSystem->mSwapChain->GetCurrentBackBufferIndex();
-    ////graphicSystem->mCurrentBackBufferIndex = currentBackBufferIndex;
-    //auto backBuffer = graphicSystem->GetCurrentBackBuffer();
-    
-
-    // Clear the render targets.
-    /*{
-        TransitionResource(commandList, backBuffer,
-            D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-        FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
-
-        ClearRTV(commandList, rtv, clearColor);
-        ClearDepth(commandList, dsv);
-    }*/
-    graphicSystem->BeginRender(NFGE::Graphics::RenderType::Direct);
     auto commandList = graphicSystem->GetCurrentCommandList();
-
-    //}
 
 	commandList->SetPipelineState(pipelineState.Get());
 	commandList->SetGraphicsRootSignature(rootSignature.Get());
@@ -260,8 +235,6 @@ void Render()
     commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / 4, &mvpMatrix, 0);
     
     commandList->DrawIndexedInstanced(_countof(cubeIndicies), 1, 0, 0, 0);
-
-    graphicSystem->EndRender(NFGE::Graphics::RenderType::Direct);
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
@@ -317,9 +290,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         float aspectRatio = static_cast<float>(GetClientWidth(myWindow)) / static_cast<float>(GetClientHeight(myWindow));
         projectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_FoV), aspectRatio, 0.1f, 100.0f);
 
+        NFGE::Graphics::GraphicsSystem::Get()->BeginRender(NFGE::Graphics::RenderType::Direct);
         Render();
-        //NFGE::Graphics::GraphicsSystem::Get()->BeginRender();
-        //NFGE::Graphics::GraphicsSystem::Get()->EndRender();
+        NFGE::Graphics::GraphicsSystem::Get()->EndRender(NFGE::Graphics::RenderType::Direct);
 	}
 
     NFGE::Graphics::GraphicsSystem::StaticTerminate();

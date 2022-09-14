@@ -140,6 +140,8 @@
     <ClInclude Include="Inc\Common.h" />
     <ClInclude Include="Inc\NFGE_2.h" />
     <ClInclude Include="Inc\Timer.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="Resource\resource.h" />
     <ClInclude Include="Src\Precompiled.h" />
   </ItemGroup>
   <ItemGroup>
@@ -152,6 +154,12 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Src\Timer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\Assets\Icon\app_icon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource\NFGE_2.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

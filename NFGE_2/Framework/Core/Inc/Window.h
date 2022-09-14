@@ -17,7 +17,7 @@ namespace NFGE {
 			// HINSTANCE: handle(OS create) -- pointer to process instance
 			// LPCSTR:  
 			// HWND: 
-			void Initialize(HINSTANCE instance, LPCSTR appName, uint32_t width, uint32_t height, bool maximize = false);
+			void Initialize(HINSTANCE instance, LPCSTR appName, uint32_t width, uint32_t height, bool maximize = false, int icon = 0);
 			void Terminate();
 
 			bool ProcessMessage();

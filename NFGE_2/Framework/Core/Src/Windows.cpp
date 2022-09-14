@@ -23,7 +23,7 @@ LRESULT CALLBACK WinProc(HWND handle, UINT message, WPARAM wParam, LPARAM lParam
 	return DefWindowProcA(handle, message, wParam, lParam);
 }
 
-void NFGE::Core::Window::Initialize(HINSTANCE instance, LPCSTR appName, uint32_t width, uint32_t height, bool maximize)
+void NFGE::Core::Window::Initialize(HINSTANCE instance, LPCSTR appName, uint32_t width, uint32_t height, bool maximize, int icon)
 {
 	// Windows 10 Creators update adds Per Monitor V2 DPI awareness context.
 	// Using this awareness context allows the client area of the window 
@@ -47,12 +47,14 @@ void NFGE::Core::Window::Initialize(HINSTANCE instance, LPCSTR appName, uint32_t
 	wcex.cbClsExtra = 0;
 	wcex.cbWndExtra = 0;
 	wcex.hInstance = instance;
-	wcex.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+	//wcex.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+	wcex.hIcon = LoadIcon(instance, MAKEINTRESOURCE(icon));
 	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
 	wcex.lpszMenuName = nullptr;
 	wcex.lpszClassName = appName;
-	wcex.hIconSm = LoadIcon(nullptr, IDI_APPLICATION);
+	//wcex.hIconSm = LoadIcon(nullptr, IDI_APPLICATION);
+	wcex.hIconSm = LoadIcon(instance, MAKEINTRESOURCE(icon));
 
 	RegisterClassExA(&wcex);
 

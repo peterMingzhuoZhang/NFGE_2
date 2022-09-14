@@ -7,6 +7,9 @@
     <Filter Include="Src">
       <UniqueIdentifier>{c9f361a9-836b-43b4-9097-1653eb41d92b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource">
+      <UniqueIdentifier>{b6cd63ca-6d4f-41bb-8d68-91dd55c7106e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Inc\NFGE_2.h">
@@ -27,6 +30,12 @@
     <ClInclude Include="Inc\AppState.h">
       <Filter>Inc</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\resource.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Timer.cpp">
@@ -41,5 +50,15 @@
     <ClCompile Include="Src\NFGE_2.cpp">
       <Filter>Src</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\Assets\Icon\app_icon.ico">
+      <Filter>Resource</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource\NFGE_2.rc">
+      <Filter>Resource</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

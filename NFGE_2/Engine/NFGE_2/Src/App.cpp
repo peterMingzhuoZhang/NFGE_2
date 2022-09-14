@@ -6,3 +6,4 @@
 
 #include "Precompiled.h"
 #include "App.h"
+#include "../Resource/resource.h" // for window icon
