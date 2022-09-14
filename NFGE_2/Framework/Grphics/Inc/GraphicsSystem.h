@@ -54,6 +54,7 @@ namespace NFGE::Graphics {
 		UINT GetCurrentBackBufferIndex() const { return mCurrentBackBufferIndex; };
 		ComPtr<ID3D12Resource> GetCurrentBackBuffer() const { return mBackBuffers[mCurrentBackBufferIndex]; };
 		D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRenderTargetView() const;
+		D3D12_CPU_DESCRIPTOR_HANDLE GetDepthStenciltView() const;
 		ComPtr<ID3D12GraphicsCommandList2> GetCurrentCommandList() const { return mCurrentCommandList; }
 
 		// Transition a resource
@@ -79,7 +80,15 @@ namespace NFGE::Graphics {
 		uint64_t mFrameFenceValues[sNumFrames]{ 0 };
 		ComPtr<IDXGISwapChain4> mSwapChain{ nullptr };
 		UINT mCurrentBackBufferIndex{ 0 };
+
+		// Depth buffer.
+		// Descriptor heap for depth buffer.
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DSVHeap;
+
+		D3D12_VIEWPORT viewport{};
+		D3D12_RECT scissorRect{};
 	private:
+		Microsoft::WRL::ComPtr<ID3D12Resource> depthBuffer;
 		//static const uint8_t sNumFrames = 3;
 
 		friend LRESULT CALLBACK GraphicsSystemMessageHandler(HWND window, UINT message, WPARAM wPrarm, LPARAM lParam);
@@ -123,6 +132,7 @@ namespace NFGE::Graphics {
 		ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(ComPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors) const;
 		void ShiftRTVDescriptorHandle(_Out_ D3D12_CPU_DESCRIPTOR_HANDLE& handleStart, int offsetInDescriptors, uint32_t descriptorSize) const;
 		void UpdateRenderTargetViews(ComPtr<ID3D12Device2> device, ComPtr<IDXGISwapChain4> swapChain, ComPtr<ID3D12DescriptorHeap> descriptorHeap); // updates mBackBuffers
+		void UpdateDepthStencilView(ComPtr<ID3D12Device2> device, ComPtr<ID3D12DescriptorHeap> descriptorHeap);
 		ComPtr<ID3D12CommandAllocator> CreateCommandAllocator(ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type) const;
 		ComPtr<ID3D12GraphicsCommandList> CreateCommandList(ComPtr<ID3D12Device2> device, ComPtr<ID3D12CommandAllocator> commandAllocator, D3D12_COMMAND_LIST_TYPE type) const;
 		D3D12_RESOURCE_BARRIER CreateTransitionBarrier(ComPtr<ID3D12Resource> resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter, UINT subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE) const;

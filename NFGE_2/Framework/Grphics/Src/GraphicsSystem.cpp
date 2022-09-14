@@ -122,6 +122,13 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 
 	UpdateRenderTargetViews(mDevice, mSwapChain, mRTVDescriptorHeap);
 
+	// Create the descriptor heap for the depth-stencil view.
+	DSVHeap = CreateDescriptorHeap(mDevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV,1);
+	UpdateDepthStencilView(mDevice, DSVHeap);
+
+	viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(mWidth), static_cast<float>(mHeight));
+	scissorRect = CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX);
+
 	mFence = CreateFence(mDevice);
 	mFenceEvent = CreateEventHandle();
 
@@ -159,26 +166,35 @@ void GraphicsSystem::BeginRender(RenderType type)
 
 	// Clear the render target.
 	{
-		D3D12_RESOURCE_BARRIER barrier = CreateTransitionBarrier(currentBackbuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		mCurrentCommandList->ResourceBarrier(1, &barrier);
+		TransitionResource(mCurrentCommandList, currentBackbuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-		ShiftRTVDescriptorHandle(rtvHandle, mCurrentBackBufferIndex, mRTVDescriptorSize);
+		//D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		//ShiftRTVDescriptorHandle(rtvHandle, mCurrentBackBufferIndex, mRTVDescriptorSize);
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+			mCurrentBackBufferIndex, mRTVDescriptorSize);
+		auto dsv = DSVHeap->GetCPUDescriptorHandleForHeapStart();
 
 		mCurrentCommandList->ClearRenderTargetView(rtvHandle, &mClearColor.x, 0, nullptr);
+		mCurrentCommandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 	}
+
+	auto rtv = GetCurrentRenderTargetView();
+	auto dsv = GetDepthStenciltView();
+
+	mCurrentCommandList->RSSetViewports(1, &viewport);
+	mCurrentCommandList->RSSetScissorRects(1, &scissorRect);
+	mCurrentCommandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 }
 
 void GraphicsSystem::EndRender(RenderType type)
 {
 	auto commandQueue = NFGE::Graphics::GetCommandQueue(static_cast<D3D12_COMMAND_LIST_TYPE>(type));
 	auto currentBackbuffer = mBackBuffers[mCurrentBackBufferIndex];
-	mCurrentCommandList = commandQueue->GetCommandList();
 
-	D3D12_RESOURCE_BARRIER barrier = CreateTransitionBarrier(currentBackbuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-	mCurrentCommandList->ResourceBarrier(1, &barrier);
-
-	ThrowIfFailed(mCurrentCommandList->Close());
+	//D3D12_RESOURCE_BARRIER barrier = CreateTransitionBarrier(currentBackbuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	//mCurrentCommandList->ResourceBarrier(1, &barrier);
+	TransitionResource(mCurrentCommandList, currentBackbuffer,
+		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 	//ID3D12CommandList* const commandLists[] = { mCurrentCommandList.Get()};
 	mFrameFenceValues[mCurrentBackBufferIndex] = commandQueue->ExecuteCommandList(mCurrentCommandList);
@@ -271,6 +287,15 @@ void NFGE::Graphics::GraphicsSystem::Resize(uint32_t width, uint32_t height)
 		mCurrentBackBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 
 		UpdateRenderTargetViews(mDevice, mSwapChain, mRTVDescriptorHeap);
+
+		UpdateDepthStencilView(mDevice, DSVHeap);
+
+		viewport.Width = (float)mWidth ;
+		viewport.Height = (float)mHeight;
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+		viewport.TopLeftX = 0;
+		viewport.TopLeftY = 0;
 	}
 }
 
@@ -298,6 +323,62 @@ D3D12_CPU_DESCRIPTOR_HANDLE NFGE::Graphics::GraphicsSystem::GetCurrentRenderTarg
 {
 	return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
 		mCurrentBackBufferIndex, mRTVDescriptorSize);
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE NFGE::Graphics::GraphicsSystem::GetDepthStenciltView() const
+{
+	return DSVHeap->GetCPUDescriptorHandleForHeapStart();
+}
+
+void NFGE::Graphics::GraphicsSystem::TransitionResource(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList, Microsoft::WRL::ComPtr<ID3D12Resource> resource, D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState)
+{
+	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+		resource.Get(),
+		beforeState, afterState);
+
+	commandList->ResourceBarrier(1, &barrier);
+}
+
+void NFGE::Graphics::GraphicsSystem::UpdateBufferResource(ComPtr<ID3D12GraphicsCommandList2> commandList, ID3D12Resource** pDestinationResource, ID3D12Resource** pIntermediateResource, size_t numElements, size_t elementSize, const void* bufferData, D3D12_RESOURCE_FLAGS flags)
+{
+	auto device = mDevice;
+
+	size_t bufferSize = numElements * elementSize;
+	// Create a committed resource for the GPU resource in a default heap.
+	{
+		CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
+		CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, flags);
+		ThrowIfFailed(device->CreateCommittedResource(
+			&heapProperties,
+			D3D12_HEAP_FLAG_NONE,
+			&resourceDesc,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(pDestinationResource)));
+	}
+
+
+	// Create an committed resource for the upload.
+	if (bufferData)
+	{
+		CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_UPLOAD);
+		CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+		ThrowIfFailed(device->CreateCommittedResource(
+			&heapProperties,
+			D3D12_HEAP_FLAG_NONE,
+			&resourceDesc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(pIntermediateResource)));
+		D3D12_SUBRESOURCE_DATA subresourceData = {};
+		subresourceData.pData = bufferData;
+		subresourceData.RowPitch = bufferSize;
+		subresourceData.SlicePitch = subresourceData.RowPitch;
+
+		UpdateSubresources(commandList.Get(),
+			*pDestinationResource, *pIntermediateResource,
+			0, 0, 1, &subresourceData);
+	}
 }
 
 // Private functions
@@ -480,6 +561,36 @@ void NFGE::Graphics::GraphicsSystem::UpdateRenderTargetViews(Microsoft::WRL::Com
 		ASSERT(mRTVDescriptorSize != 0, "Unexpect RTVDescriptorSize.");
 		rtvHandle.ptr += mRTVDescriptorSize;
 	}
+}
+
+void NFGE::Graphics::GraphicsSystem::UpdateDepthStencilView(ComPtr<ID3D12Device2> device, ComPtr<ID3D12DescriptorHeap> descriptorHeap)
+{
+	// Create a depth buffer.
+	D3D12_CLEAR_VALUE optimizedClearValue = {};
+	optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+	optimizedClearValue.DepthStencil = { 1.0f, 0 };
+
+	CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
+	CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, mWidth, mHeight,
+		1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+	ThrowIfFailed(device->CreateCommittedResource(
+		&heapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&resourceDesc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		&optimizedClearValue,
+		IID_PPV_ARGS(&depthBuffer)
+	));
+
+	// Update the depth-stencil view.
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
+	dsv.Format = DXGI_FORMAT_D32_FLOAT;
+	dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	dsv.Texture2D.MipSlice = 0;
+	dsv.Flags = D3D12_DSV_FLAG_NONE;
+
+	device->CreateDepthStencilView(depthBuffer.Get(), &dsv,
+		DSVHeap->GetCPUDescriptorHandleForHeapStart());
 }
 
 Microsoft::WRL::ComPtr<ID3D12CommandAllocator> NFGE::Graphics::GraphicsSystem::CreateCommandAllocator(Microsoft::WRL::ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type) const

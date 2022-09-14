@@ -14,22 +14,14 @@ Microsoft::WRL::ComPtr<ID3D12Resource> indexBuffer;
 D3D12_INDEX_BUFFER_VIEW indexBufferView;
 
 // Depth buffer.
-Microsoft::WRL::ComPtr<ID3D12Resource> depthBuffer;
+//Microsoft::WRL::ComPtr<ID3D12Resource> depthBuffer;
 // Descriptor heap for depth buffer.
-Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DSVHeap;
+//Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DSVHeap;
 // Root signature
 Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature;
 
 // Pipeline state object.
 Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;
-
-D3D12_VIEWPORT viewport;
-void InitializeViewPort(int w, int h) 
-{
-    viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(w), static_cast<float>(h));
-}
-
-D3D12_RECT scissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX));
 
 struct VertexPC
 {
@@ -58,92 +50,6 @@ static WORD cubeIndicies[36] =
     4, 0, 3, 4, 3, 7
 };
 
-void ResizeDepthBuffer(int width, int height)
-{
-    // Flush any GPU commands that might be referencing the depth buffer.
-    NFGE::Graphics::Flush();
-
-    width = std::max(1, width);
-    height = std::max(1, height);
-
-    auto device = NFGE::Graphics::GetDevice();
-
-    // Resize screen dependent resources.
-    // Create a depth buffer.
-    D3D12_CLEAR_VALUE optimizedClearValue = {};
-    optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
-    optimizedClearValue.DepthStencil = { 1.0f, 0 };
-
-    CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
-    CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, width, height,
-        1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
-    ThrowIfFailed(device->CreateCommittedResource(
-        &heapProperties,
-        D3D12_HEAP_FLAG_NONE,
-        &resourceDesc,
-        D3D12_RESOURCE_STATE_DEPTH_WRITE,
-        &optimizedClearValue,
-        IID_PPV_ARGS(&depthBuffer)
-    ));
-
-    // Update the depth-stencil view.
-    D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
-    dsv.Format = DXGI_FORMAT_D32_FLOAT;
-    dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-    dsv.Texture2D.MipSlice = 0;
-    dsv.Flags = D3D12_DSV_FLAG_NONE;
-
-    device->CreateDepthStencilView(depthBuffer.Get(), &dsv,
-        DSVHeap->GetCPUDescriptorHandleForHeapStart());
-}
-
-void UpdateBufferResource(
-    ComPtr<ID3D12GraphicsCommandList2> commandList,
-    ID3D12Resource** pDestinationResource,
-    ID3D12Resource** pIntermediateResource,
-    size_t numElements, size_t elementSize, const void* bufferData,
-    D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE)
-{
-    auto device = NFGE::Graphics::GetDevice();
-
-    size_t bufferSize = numElements * elementSize;
-    // Create a committed resource for the GPU resource in a default heap.
-    {
-        CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
-        CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, flags);
-        ThrowIfFailed(device->CreateCommittedResource(
-            &heapProperties,
-            D3D12_HEAP_FLAG_NONE,
-            &resourceDesc,
-            D3D12_RESOURCE_STATE_COPY_DEST,
-            nullptr,
-            IID_PPV_ARGS(pDestinationResource)));
-    }
-    
-
-    // Create an committed resource for the upload.
-    if (bufferData)
-    {
-        CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_UPLOAD);
-        CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
-        ThrowIfFailed(device->CreateCommittedResource(
-            &heapProperties,
-            D3D12_HEAP_FLAG_NONE,
-            &resourceDesc,
-            D3D12_RESOURCE_STATE_GENERIC_READ,
-            nullptr,
-            IID_PPV_ARGS(pIntermediateResource)));
-        D3D12_SUBRESOURCE_DATA subresourceData = {};
-        subresourceData.pData = bufferData;
-        subresourceData.RowPitch = bufferSize;
-        subresourceData.SlicePitch = subresourceData.RowPitch;
-
-        UpdateSubresources(commandList.Get(),
-            *pDestinationResource, *pIntermediateResource,
-            0, 0, 1, &subresourceData);
-    }
-}
-
 // -------------------------------------------------------------------------------------------------^
 // Render object resources -------------------------------------------------------------------------|
 
@@ -159,13 +65,14 @@ XMMATRIX projectionMatrix;
 
 bool Load(int width, int height)
 {
+    auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
     auto device = NFGE::Graphics::GetDevice();
     auto commandQueue = NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
     auto commandList = commandQueue->GetCommandList();
 
     // Upload vertex buffer data.
     ComPtr<ID3D12Resource> intermediateVertexBuffer;
-    UpdateBufferResource(commandList.Get(),
+     graphicSystem->UpdateBufferResource(commandList.Get(),
         &vertexBuffer, &intermediateVertexBuffer,
         _countof(cubeVertices), sizeof(VertexPC), cubeVertices);
     // Create the vertex buffer view.
@@ -174,7 +81,7 @@ bool Load(int width, int height)
     vertexBufferView.StrideInBytes = sizeof(VertexPC);
     // Upload index buffer data.
     ComPtr<ID3D12Resource> intermediateIndexBuffer;
-    UpdateBufferResource(commandList.Get(),
+    graphicSystem->UpdateBufferResource(commandList.Get(),
         &indexBuffer, &intermediateIndexBuffer,
         _countof(cubeIndicies), sizeof(WORD), cubeIndicies);
     // Create index buffer view.
@@ -183,19 +90,39 @@ bool Load(int width, int height)
     indexBufferView.SizeInBytes = sizeof(cubeIndicies);
 
     // Create the descriptor heap for the depth-stencil view.
-    D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-    dsvHeapDesc.NumDescriptors = 1;
-    dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-    dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-    ThrowIfFailed(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&DSVHeap)));
 
     // Load the vertex shader.
-    ComPtr<ID3DBlob> vertexShaderBlob;
-    ThrowIfFailed(D3DReadFileToBlob(L"VertexShader.cso", &vertexShaderBlob));
+   /* ComPtr<ID3DBlob> vertexShaderBlob;
+    ThrowIfFailed(D3DReadFileToBlob(L"VertexShader.cso", &vertexShaderBlob));*/
+    // Compile our vertex shader code
+
+    ComPtr<ID3DBlob> vertexShaderBlob = nullptr;
+    ID3DBlob* shaderErrorBlob = nullptr;
+    HRESULT hr = D3DCompileFromFile(
+        L"VertexShader.hlsl",
+        nullptr, nullptr,
+        "main",
+        "vs_5_1", 0, 0, // which compiler
+        &vertexShaderBlob,	//
+        &shaderErrorBlob);
+    ASSERT(SUCCEEDED(hr), "Failed to compile vertex shader. Error: %s", (const char*)shaderErrorBlob->GetBufferPointer());
+    SafeRelease(shaderErrorBlob);
 
     // Load the pixel shader.
-    ComPtr<ID3DBlob> pixelShaderBlob;
-    ThrowIfFailed(D3DReadFileToBlob(L"PixelShader.cso", &pixelShaderBlob));
+    /*ComPtr<ID3DBlob> pixelShaderBlob;
+    ThrowIfFailed(D3DReadFileToBlob(L"PixelShader.cso", &pixelShaderBlob));*/
+
+    // Compile our vertex shader code
+    ComPtr<ID3DBlob> pixelShaderBlob = nullptr;
+    hr = D3DCompileFromFile(
+        L"PixelShader.hlsl",
+        nullptr, nullptr,
+        "main",
+        "ps_5_1", 0, 0, // which compiler
+        &pixelShaderBlob,	//
+        &shaderErrorBlob);
+    ASSERT(SUCCEEDED(hr), "Failed to compile pixel shader. Error: %s", (const char*)shaderErrorBlob->GetBufferPointer());
+    SafeRelease(shaderErrorBlob);
 
     // Create the vertex input layout
     D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
@@ -266,9 +193,6 @@ bool Load(int width, int height)
     auto fenceValue = commandQueue->ExecuteCommandList(commandList);
     commandQueue->WaitForFenceValue(fenceValue);
 
-    // Resize/Create the depth buffer.
-    ResizeDepthBuffer(width, height);
-
     return true;
 
 }
@@ -312,16 +236,15 @@ void Render()
 {
     auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
     auto commandQueue = NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-    auto commandList = commandQueue->GetCommandList();
+    //auto commandList = commandQueue->GetCommandList();
 
-    UINT currentBackBufferIndex = graphicSystem->mSwapChain->GetCurrentBackBufferIndex();
-    graphicSystem->mCurrentBackBufferIndex = currentBackBufferIndex;
-    auto backBuffer = graphicSystem->GetCurrentBackBuffer();
-    auto rtv = graphicSystem->GetCurrentRenderTargetView();
-    auto dsv = DSVHeap->GetCPUDescriptorHandleForHeapStart();
+    //UINT currentBackBufferIndex = graphicSystem->mSwapChain->GetCurrentBackBufferIndex();
+    ////graphicSystem->mCurrentBackBufferIndex = currentBackBufferIndex;
+    //auto backBuffer = graphicSystem->GetCurrentBackBuffer();
+    
 
     // Clear the render targets.
-    {
+    /*{
         TransitionResource(commandList, backBuffer,
             D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
@@ -329,8 +252,9 @@ void Render()
 
         ClearRTV(commandList, rtv, clearColor);
         ClearDepth(commandList, dsv);
-    }
-    //graphicSystem->BeginRender(NFGE::Graphics::RenderType::Direct);
+    }*/
+    graphicSystem->BeginRender(NFGE::Graphics::RenderType::Direct);
+    auto commandList = graphicSystem->GetCurrentCommandList();
 
     //}
 
@@ -339,9 +263,7 @@ void Render()
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 	commandList->IASetIndexBuffer(&indexBufferView);
-	commandList->RSSetViewports(1, &viewport);
-	commandList->RSSetScissorRects(1, &scissorRect);
-    commandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
+	
 
     // Update the MVP matrix
     XMMATRIX mvpMatrix = XMMatrixMultiply(modelMatrix, viewMatrix);
@@ -350,21 +272,7 @@ void Render()
     
     commandList->DrawIndexedInstanced(_countof(cubeIndicies), 1, 0, 0, 0);
 
-    // Present
-    {
-        TransitionResource(commandList, backBuffer,
-            D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-
-        graphicSystem->mFrameFenceValues[currentBackBufferIndex] = commandQueue->ExecuteCommandList(commandList);
-
-        graphicSystem->mSwapChain->Present(1,0);
-        currentBackBufferIndex = graphicSystem->mSwapChain->GetCurrentBackBufferIndex();
-        graphicSystem->mCurrentBackBufferIndex = currentBackBufferIndex;
-
-        commandQueue->WaitForFenceValue(graphicSystem->mFrameFenceValues[currentBackBufferIndex]);
-    }
-
-    //graphicSystem->EndRender(NFGE::Graphics::RenderType::Direct);
+    graphicSystem->EndRender(NFGE::Graphics::RenderType::Direct);
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
@@ -382,6 +290,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 
 		// run your game logic ...
         static uint64_t frameCounter = 0;
+        static double totalSeconds = 0.0;
         static double elapsedSeconds = 0.0;
         static std::chrono::high_resolution_clock clock;
         static auto t0 = clock.now();
@@ -393,12 +302,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
             t0 = t1;
 
             elapsedSeconds += deltaTime.count() * 1e-9;
+            totalSeconds += deltaTime.count() * 1e-9;
             if (elapsedSeconds > 1.0)
             {
                 char buffer[500];
                 auto fps = frameCounter / elapsedSeconds;
                 sprintf_s(buffer, 500, "FPS: %f\n", fps);
-                LOG("FPS: %s", buffer);
+                LOG("FPS: %f", fps);
 
                 frameCounter = 0;
                 elapsedSeconds = 0.0;
@@ -406,7 +316,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 		}
         
         // Update
-        float angle = static_cast<float>(elapsedSeconds * 90.0);
+        float angle = static_cast<float>(totalSeconds * 90.0);
         const XMVECTOR rotationAxis = XMVectorSet(0, 1, 1, 0);
         modelMatrix = XMMatrixRotationAxis(rotationAxis, XMConvertToRadians(angle));
 
