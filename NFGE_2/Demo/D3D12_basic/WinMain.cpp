@@ -72,7 +72,7 @@ bool Load(int width, int height)
 
     // Upload vertex buffer data.
     ComPtr<ID3D12Resource> intermediateVertexBuffer;
-     graphicSystem->UpdateBufferResource(commandList.Get(),
+    NFGE::Graphics::UpdateBufferResource(commandList.Get(),
         &vertexBuffer, &intermediateVertexBuffer,
         _countof(cubeVertices), sizeof(VertexPC), cubeVertices);
     // Create the vertex buffer view.
@@ -81,7 +81,7 @@ bool Load(int width, int height)
     vertexBufferView.StrideInBytes = sizeof(VertexPC);
     // Upload index buffer data.
     ComPtr<ID3D12Resource> intermediateIndexBuffer;
-    graphicSystem->UpdateBufferResource(commandList.Get(),
+    NFGE::Graphics::UpdateBufferResource(commandList.Get(),
         &indexBuffer, &intermediateIndexBuffer,
         _countof(cubeIndicies), sizeof(WORD), cubeIndicies);
     // Create index buffer view.
@@ -206,17 +206,6 @@ int GetClientHeight(const NFGE::Core::Window& window)
 {
     RECT windowRect = window.GetWindowRECT();
     return (uint32_t)(windowRect.bottom - windowRect.top);
-}
-
-void TransitionResource(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList,
-    Microsoft::WRL::ComPtr<ID3D12Resource> resource,
-    D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState)
-{
-    CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-        resource.Get(),
-        beforeState, afterState);
-
-    commandList->ResourceBarrier(1, &barrier);
 }
 
 // Clear a render target.

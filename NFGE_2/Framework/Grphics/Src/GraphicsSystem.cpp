@@ -330,57 +330,6 @@ D3D12_CPU_DESCRIPTOR_HANDLE NFGE::Graphics::GraphicsSystem::GetDepthStenciltView
 	return DSVHeap->GetCPUDescriptorHandleForHeapStart();
 }
 
-void NFGE::Graphics::GraphicsSystem::TransitionResource(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList, Microsoft::WRL::ComPtr<ID3D12Resource> resource, D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState)
-{
-	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-		resource.Get(),
-		beforeState, afterState);
-
-	commandList->ResourceBarrier(1, &barrier);
-}
-
-void NFGE::Graphics::GraphicsSystem::UpdateBufferResource(ComPtr<ID3D12GraphicsCommandList2> commandList, ID3D12Resource** pDestinationResource, ID3D12Resource** pIntermediateResource, size_t numElements, size_t elementSize, const void* bufferData, D3D12_RESOURCE_FLAGS flags)
-{
-	auto device = mDevice;
-
-	size_t bufferSize = numElements * elementSize;
-	// Create a committed resource for the GPU resource in a default heap.
-	{
-		CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
-		CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, flags);
-		ThrowIfFailed(device->CreateCommittedResource(
-			&heapProperties,
-			D3D12_HEAP_FLAG_NONE,
-			&resourceDesc,
-			D3D12_RESOURCE_STATE_COPY_DEST,
-			nullptr,
-			IID_PPV_ARGS(pDestinationResource)));
-	}
-
-
-	// Create an committed resource for the upload.
-	if (bufferData)
-	{
-		CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_UPLOAD);
-		CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
-		ThrowIfFailed(device->CreateCommittedResource(
-			&heapProperties,
-			D3D12_HEAP_FLAG_NONE,
-			&resourceDesc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(pIntermediateResource)));
-		D3D12_SUBRESOURCE_DATA subresourceData = {};
-		subresourceData.pData = bufferData;
-		subresourceData.RowPitch = bufferSize;
-		subresourceData.SlicePitch = subresourceData.RowPitch;
-
-		UpdateSubresources(commandList.Get(),
-			*pDestinationResource, *pIntermediateResource,
-			0, 0, 1, &subresourceData);
-	}
-}
-
 // Private functions
 Microsoft::WRL::ComPtr<IDXGIAdapter4> NFGE::Graphics::GraphicsSystem::GetAdapter(bool useWarp, SIZE_T dedicatedVideoMemory)
 {
