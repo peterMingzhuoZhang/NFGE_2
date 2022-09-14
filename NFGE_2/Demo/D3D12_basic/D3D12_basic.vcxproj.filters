@@ -7,4 +7,13 @@
     <FxCompile Include="VertexShader.hlsl" />
     <FxCompile Include="PixelShader.hlsl" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="D3D12_basic.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\Assets\Icon\app_icon.ico" />
+  </ItemGroup>
 </Project>
