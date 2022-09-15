@@ -68,7 +68,7 @@ bool Load(int width, int height)
 
     // Upload vertex buffer data.
     ComPtr<ID3D12Resource> intermediateVertexBuffer;
-    NFGE::Graphics::UpdateBufferResource(commandList.Get(),
+    NFGE::Graphics::GraphicsSystem::UpdateBufferResource(commandList.Get(),
         &vertexBuffer, &intermediateVertexBuffer,
         _countof(cubeVertices), sizeof(VertexPC), cubeVertices);
     // Create the vertex buffer view.
@@ -77,7 +77,7 @@ bool Load(int width, int height)
     vertexBufferView.StrideInBytes = sizeof(VertexPC);
     // Upload index buffer data.
     ComPtr<ID3D12Resource> intermediateIndexBuffer;
-    NFGE::Graphics::UpdateBufferResource(commandList.Get(),
+    NFGE::Graphics::GraphicsSystem::UpdateBufferResource(commandList.Get(),
         &indexBuffer, &intermediateIndexBuffer,
         _countof(cubeIndicies), sizeof(WORD), cubeIndicies);
     // Create index buffer view.
@@ -229,7 +229,6 @@ void Render()
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 	commandList->IASetIndexBuffer(&indexBufferView);
 	
-
     // Update the MVP matrix
     XMMATRIX mvpMatrix = XMMatrixMultiply(modelMatrix, viewMatrix);
     mvpMatrix = XMMatrixMultiply(mvpMatrix, projectionMatrix);
