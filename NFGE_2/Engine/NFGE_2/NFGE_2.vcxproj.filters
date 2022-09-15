@@ -30,9 +30,6 @@
     <ClInclude Include="Inc\AppState.h">
       <Filter>Inc</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>Inc</Filter>
-    </ClInclude>
     <ClInclude Include="Resource\resource.h">
       <Filter>Resource</Filter>
     </ClInclude>
@@ -52,7 +49,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\Assets\Icon\app_icon.ico">
+    <Image Include="..\..\Assets\Icon\favicon.ico">
       <Filter>Resource</Filter>
     </Image>
   </ItemGroup>

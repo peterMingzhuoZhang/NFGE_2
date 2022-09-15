@@ -187,7 +187,7 @@
     <ResourceCompile Include="D3D12_basic.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\Assets\Icon\app_icon.ico" />
+    <Image Include="..\..\Assets\Icon\favicon.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
