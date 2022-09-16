@@ -12,3 +12,4 @@
 #include "CommandQueue.h"
 #include "d3dx12.h"
 #include "GraphicsSystem.h"
+#include "UploadBuffer.h"

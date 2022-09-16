@@ -142,6 +142,7 @@
     <ClInclude Include="Inc\d3dx12.h" />
     <ClInclude Include="Inc\Graphics.h" />
     <ClInclude Include="Inc\GraphicsSystem.h" />
+    <ClInclude Include="Inc\UploadBuffer.h" />
     <ClInclude Include="Src\D3DUtil.h" />
     <ClInclude Include="Src\Precompiled.h" />
   </ItemGroup>
@@ -155,6 +156,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Src\UploadBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\External\DirectXTK12\DirectXTK_Desktop_2022_Win10.vcxproj">

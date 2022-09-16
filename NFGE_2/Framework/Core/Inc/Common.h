@@ -21,12 +21,14 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdint>
+#include <deque>
 #include <filesystem>
 #include <functional>
 #include <list>
 #include <optional>
 #include <map>
 #include <memory>
+#include <new>
 #include <random>
 #include <string>
 #include <unordered_map>
