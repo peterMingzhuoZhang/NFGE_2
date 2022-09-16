@@ -54,6 +54,15 @@
     <ClInclude Include="Inc\UploadBuffer.h">
       <Filter>Inc\NFGE_D3d12</Filter>
     </ClInclude>
+    <ClInclude Include="Inc\DescriptorAllocator.h">
+      <Filter>Inc\NFGE_D3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DescriptorAllocatorPage.h">
+      <Filter>Inc\NFGE_D3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DescriptorAllocation.h">
+      <Filter>Inc\NFGE_D3d12</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Precompiled.cpp">
@@ -69,6 +78,15 @@
       <Filter>Src\Util</Filter>
     </ClCompile>
     <ClCompile Include="Src\UploadBuffer.cpp">
+      <Filter>Src\NFGE_D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DescriptorAllocator.cpp">
+      <Filter>Src\NFGE_D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DescriptorAllocatorPage.cpp">
+      <Filter>Src\NFGE_D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DescriptorAllocation.cpp">
       <Filter>Src\NFGE_D3D12</Filter>
     </ClCompile>
   </ItemGroup>

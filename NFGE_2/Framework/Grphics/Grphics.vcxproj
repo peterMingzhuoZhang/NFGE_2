@@ -140,6 +140,9 @@
     <ClInclude Include="Inc\CommandQueue.h" />
     <ClInclude Include="Inc\Common.h" />
     <ClInclude Include="Inc\d3dx12.h" />
+    <ClInclude Include="Inc\DescriptorAllocation.h" />
+    <ClInclude Include="Inc\DescriptorAllocator.h" />
+    <ClInclude Include="Inc\DescriptorAllocatorPage.h" />
     <ClInclude Include="Inc\Graphics.h" />
     <ClInclude Include="Inc\GraphicsSystem.h" />
     <ClInclude Include="Inc\UploadBuffer.h" />
@@ -149,6 +152,9 @@
   <ItemGroup>
     <ClCompile Include="Src\CommandQueue.cpp" />
     <ClCompile Include="Src\D3DUtil.cpp" />
+    <ClCompile Include="Src\DescriptorAllocator.cpp" />
+    <ClCompile Include="Src\DescriptorAllocatorPage.cpp" />
+    <ClCompile Include="Src\DescriptorAllocation.cpp" />
     <ClCompile Include="Src\GraphicsSystem.cpp" />
     <ClCompile Include="Src\Precompiled.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

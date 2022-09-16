@@ -75,6 +75,7 @@ namespace NFGE::Graphics {
 		friend LRESULT CALLBACK GraphicsSystemMessageHandler(HWND window, UINT message, WPARAM wPrarm, LPARAM lParam);
 		friend ComPtr<ID3D12Device2> GetDevice();
 		friend CommandQueue* GetCommandQueue(D3D12_COMMAND_LIST_TYPE type);
+		friend uint8_t GetFrameCount();
 		friend void Flush();
 
 		void UpdateRenderTargetViews(ComPtr<ID3D12Device2> device, ComPtr<IDXGISwapChain4> swapChain, ComPtr<ID3D12DescriptorHeap> descriptorHeap);

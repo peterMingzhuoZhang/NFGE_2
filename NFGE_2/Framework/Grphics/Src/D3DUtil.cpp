@@ -33,6 +33,11 @@ NFGE::Graphics::CommandQueue* NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST
     return commandQueue;
 }
 
+uint8_t  NFGE::Graphics::GetFrameCount()
+{
+    return NFGE::Graphics::GraphicsSystem::Get()->sNumFrames;
+}
+
 void NFGE::Graphics::Flush()
 {
     NFGE::Graphics::GraphicsSystem::Get()->Flush();

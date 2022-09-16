@@ -28,8 +28,11 @@
 #include <optional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <new>
+#include <queue>
 #include <random>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
