@@ -85,7 +85,7 @@ DescriptorAllocation NFGE::Graphics::DescriptorAllocatorPage::Allocate(uint32_t 
 
     return DescriptorAllocation(
         CD3DX12_CPU_DESCRIPTOR_HANDLE(mBaseDescriptor, offset, mDescriptorHandleIncrementSize),
-        numDescriptors, mDescriptorHandleIncrementSize, nullptr);
+        numDescriptors, mDescriptorHandleIncrementSize, this);
 }
 
 void NFGE::Graphics::DescriptorAllocatorPage::Free(DescriptorAllocation&& descriptor, uint64_t frameNumber)

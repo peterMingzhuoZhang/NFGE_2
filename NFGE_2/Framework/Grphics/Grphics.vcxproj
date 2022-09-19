@@ -137,21 +137,27 @@
   <ItemGroup>
     <ClInclude Include="Inc\Camera.h" />
     <ClInclude Include="Inc\Colors.h" />
+    <ClInclude Include="Inc\CommandList.h" />
     <ClInclude Include="Inc\CommandQueue.h" />
     <ClInclude Include="Inc\Common.h" />
     <ClInclude Include="Inc\d3dx12.h" />
     <ClInclude Include="Inc\DescriptorAllocation.h" />
     <ClInclude Include="Inc\DescriptorAllocator.h" />
     <ClInclude Include="Inc\DescriptorAllocatorPage.h" />
+    <ClInclude Include="Inc\DynamicDescriptorHeap.h" />
     <ClInclude Include="Inc\Graphics.h" />
     <ClInclude Include="Inc\GraphicsSystem.h" />
+    <ClInclude Include="Inc\ResourceStateTracker.h" />
+    <ClInclude Include="Inc\RootSignature.h" />
     <ClInclude Include="Inc\UploadBuffer.h" />
     <ClInclude Include="Src\D3DUtil.h" />
     <ClInclude Include="Src\Precompiled.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Src\CommandList.cpp" />
     <ClCompile Include="Src\CommandQueue.cpp" />
     <ClCompile Include="Src\D3DUtil.cpp" />
+    <ClCompile Include="Src\DynamicDescriptorHeap.cpp" />
     <ClCompile Include="Src\DescriptorAllocator.cpp" />
     <ClCompile Include="Src\DescriptorAllocatorPage.cpp" />
     <ClCompile Include="Src\DescriptorAllocation.cpp" />
@@ -162,6 +168,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Src\ResourceStateTracker.cpp" />
+    <ClCompile Include="Src\RootSignature.cpp" />
     <ClCompile Include="Src\UploadBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>

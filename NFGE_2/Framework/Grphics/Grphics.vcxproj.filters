@@ -63,6 +63,18 @@
     <ClInclude Include="Inc\DescriptorAllocation.h">
       <Filter>Inc\NFGE_D3d12</Filter>
     </ClInclude>
+    <ClInclude Include="Inc\DynamicDescriptorHeap.h">
+      <Filter>Inc\NFGE_D3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\RootSignature.h">
+      <Filter>Inc\NFGE_D3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\CommandList.h">
+      <Filter>Inc\NFGE_D3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\ResourceStateTracker.h">
+      <Filter>Inc\NFGE_D3d12</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Precompiled.cpp">
@@ -87,6 +99,18 @@
       <Filter>Src\NFGE_D3D12</Filter>
     </ClCompile>
     <ClCompile Include="Src\DescriptorAllocation.cpp">
+      <Filter>Src\NFGE_D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\DynamicDescriptorHeap.cpp">
+      <Filter>Src\NFGE_D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\RootSignature.cpp">
+      <Filter>Src\NFGE_D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\CommandList.cpp">
+      <Filter>Src\NFGE_D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\ResourceStateTracker.cpp">
       <Filter>Src\NFGE_D3D12</Filter>
     </ClCompile>
   </ItemGroup>
