@@ -147,6 +147,7 @@
     <ClInclude Include="Inc\DynamicDescriptorHeap.h" />
     <ClInclude Include="Inc\Graphics.h" />
     <ClInclude Include="Inc\GraphicsSystem.h" />
+    <ClInclude Include="Inc\Resource.h" />
     <ClInclude Include="Inc\ResourceStateTracker.h" />
     <ClInclude Include="Inc\RootSignature.h" />
     <ClInclude Include="Inc\UploadBuffer.h" />
@@ -168,6 +169,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Src\Resource.cpp" />
     <ClCompile Include="Src\ResourceStateTracker.cpp" />
     <ClCompile Include="Src\RootSignature.cpp" />
     <ClCompile Include="Src\UploadBuffer.cpp" />

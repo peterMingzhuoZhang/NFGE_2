@@ -75,6 +75,9 @@
     <ClInclude Include="Inc\ResourceStateTracker.h">
       <Filter>Inc\NFGE_D3d12</Filter>
     </ClInclude>
+    <ClInclude Include="Inc\Resource.h">
+      <Filter>Inc\NFGE_D3d12</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Precompiled.cpp">
@@ -111,6 +114,9 @@
       <Filter>Src\NFGE_D3D12</Filter>
     </ClCompile>
     <ClCompile Include="Src\ResourceStateTracker.cpp">
+      <Filter>Src\NFGE_D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Resource.cpp">
       <Filter>Src\NFGE_D3D12</Filter>
     </ClCompile>
   </ItemGroup>

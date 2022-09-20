@@ -17,6 +17,7 @@
 #include "DescriptorAllocatorPage.h"
 #include "DynamicDescriptorHeap.h"
 #include "GraphicsSystem.h"
+#include "Resource.h"
 #include "ResourceStateTracker.h"
 #include "RootSignature.h"
 #include "UploadBuffer.h"
