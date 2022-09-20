@@ -8,6 +8,8 @@
 #include "GraphicsSystem.h"
 #include "d3dx12.h"
 #include "D3DUtil.h"
+#include "DescriptorAllocator.h"
+#include "DescriptorAllocatorPage.h"
 
 using namespace NFGE;
 using namespace NFGE::Graphics;

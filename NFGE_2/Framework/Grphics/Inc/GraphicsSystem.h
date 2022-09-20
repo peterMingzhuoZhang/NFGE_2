@@ -8,6 +8,7 @@
 
 #include "Colors.h"
 #include "CommandQueue.h"
+#include "DescriptorAllocation.h"
 
 namespace NFGE::Graphics {
 	using namespace Microsoft::WRL;
@@ -19,6 +20,7 @@ namespace NFGE::Graphics {
 		Copy = D3D12_COMMAND_LIST_TYPE_COPY
 	};
 
+	class DescriptorAllocator;
 	class GraphicsSystem
 	{
 	public:
@@ -78,6 +80,11 @@ namespace NFGE::Graphics {
 		friend uint8_t GetFrameCount();
 		friend void Flush();
 
+		friend DescriptorAllocation AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors);
+		// Release stale descriptors. This should only be called with a completed frame counter.
+		friend void ReleaseStaleDescriptors(uint64_t finishedFrame);
+		friend UINT GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type);
+
 		void UpdateRenderTargetViews(ComPtr<ID3D12Device2> device, ComPtr<IDXGISwapChain4> swapChain, ComPtr<ID3D12DescriptorHeap> descriptorHeap);
 		void UpdateDepthStencilView(ComPtr<ID3D12Device2> device, ComPtr<ID3D12DescriptorHeap> descriptorHeap);
 		UINT GetCurrentBackBufferIndex() const { return mCurrentBackBufferIndex; };
@@ -98,9 +105,12 @@ namespace NFGE::Graphics {
 		ComPtr<ID3D12Resource> mBackBuffers[sNumFrames]{ nullptr };
 		UINT mCurrentBackBufferIndex{ 0 };
 		ComPtr<ID3D12DescriptorHeap> mRTVDescriptorHeap{ nullptr };
+		UINT mRTVDescriptorSize{ 0 };
 		Microsoft::WRL::ComPtr<ID3D12Resource> mDepthBuffer;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDSVHeap;
-		UINT mRTVDescriptorSize{ 0 };
+
+		std::unique_ptr<DescriptorAllocator> mDescriptorAllocators[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+
 		D3D12_VIEWPORT mViewport{};
 		D3D12_RECT mScissorRect{};
 

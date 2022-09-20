@@ -3,6 +3,8 @@
 
 #include "GraphicsSystem.h"
 #include "d3dx12.h"
+#include "DescriptorAllocation.h"
+#include "DescriptorAllocator.h"
 
 //#include "Texture.h"
 
@@ -41,4 +43,23 @@ uint8_t  NFGE::Graphics::GetFrameCount()
 void NFGE::Graphics::Flush()
 {
     NFGE::Graphics::GraphicsSystem::Get()->Flush();
+}
+
+NFGE::Graphics::DescriptorAllocation NFGE::Graphics::AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors)
+{
+    return NFGE::Graphics::GraphicsSystem::Get()->mDescriptorAllocators[type]->Allocate(numDescriptors);
+}
+
+void NFGE::Graphics::ReleaseStaleDescriptors(uint64_t finishedFrame)
+{
+    auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
+    for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+    {
+        graphicSystem->mDescriptorAllocators[i]->ReleaseStaleDescriptors(finishedFrame);
+    }
+}
+
+UINT NFGE::Graphics::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type)
+{
+    return NFGE::Graphics::GraphicsSystem::Get()->mDevice->GetDescriptorHandleIncrementSize(type);
 }

@@ -6,13 +6,12 @@
 //====================================================================================================
 
 #include "DescriptorAllocation.h"
+#include "DescriptorAllocatorPage.h"
 
 #pragma once
 
 namespace NFGE::Graphics 
 {
-    class DescriptorAllocatorPage;
-
     class DescriptorAllocator
     {
     public:

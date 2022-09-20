@@ -147,9 +147,11 @@
     <ClInclude Include="Inc\DynamicDescriptorHeap.h" />
     <ClInclude Include="Inc\Graphics.h" />
     <ClInclude Include="Inc\GraphicsSystem.h" />
+    <ClInclude Include="Inc\RenderTarget.h" />
     <ClInclude Include="Inc\Resource.h" />
     <ClInclude Include="Inc\ResourceStateTracker.h" />
     <ClInclude Include="Inc\RootSignature.h" />
+    <ClInclude Include="Inc\Texture.h" />
     <ClInclude Include="Inc\UploadBuffer.h" />
     <ClInclude Include="Src\D3DUtil.h" />
     <ClInclude Include="Src\Precompiled.h" />
@@ -172,6 +174,7 @@
     <ClCompile Include="Src\Resource.cpp" />
     <ClCompile Include="Src\ResourceStateTracker.cpp" />
     <ClCompile Include="Src\RootSignature.cpp" />
+    <ClCompile Include="Src\Texture.cpp" />
     <ClCompile Include="Src\UploadBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
