@@ -15,6 +15,7 @@
 #include <dxgi1_6.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
+#include <../External/DirectXTex-main/DirectXTex/DirectXTex.h>
 
 // External headers
 #include <ImGui/Inc/imgui.h>

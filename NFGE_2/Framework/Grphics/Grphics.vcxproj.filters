@@ -128,5 +128,8 @@
     <ClCompile Include="Src\Texture.cpp">
       <Filter>Src\NFGE_D3D12</Filter>
     </ClCompile>
+    <ClCompile Include="Src\RenderTarget.cpp">
+      <Filter>Src\NFGE_D3D12</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

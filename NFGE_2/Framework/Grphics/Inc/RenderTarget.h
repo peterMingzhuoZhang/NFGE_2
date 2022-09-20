@@ -60,7 +60,7 @@ namespace NFGE::Graphics
 
     private:
 
-        std::vector<Texture> m_Textures;
+        std::vector<Texture> mTextures;
     };
 }
 

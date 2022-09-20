@@ -14,6 +14,8 @@ namespace NFGE::Graphics {
     class Resource;
     class ResourceStateTracker;
     class UploadBuffer;
+    class Texture;
+    enum class TextureUsage;
 
     class CommandList 
     {
@@ -26,10 +28,27 @@ namespace NFGE::Graphics {
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> GetGraphicsCommandList() const { return mD3d12CommandList; }
 
         void TransitionBarrier(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateAfter, UINT subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool flushBarriers = false);
+        void TransitionBarrier(const Resource& resource, D3D12_RESOURCE_STATES stateAfter, UINT subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool flushBarriers = false);
+
         void UAVBarrier(ID3D12Resource* resource, bool flushBarriers = false);
+        void UAVBarrier(const Resource& resource, bool flushBarriers = false);
+
         void AliasingBarrier(ID3D12Resource* beforeResource, ID3D12Resource* afterResource, bool flushBarriers = false);
+        void AliasingBarrier(const Resource& beforeResource, const Resource& afterResource, bool flushBarriers = false);
+
         void FlushResourceBarriers();
+
         void CopyResource(ID3D12Resource* dstRes, ID3D12Resource* srcRes);
+        void CopyResource(Resource& dstRes, const Resource& srcRes);
+
+        void LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage textureUsage);
+        void ClearTexture(const Texture& texture, const float clearColor[4]);
+        void ClearDepthStencilTexture(const Texture& texture, D3D12_CLEAR_FLAGS clearFlags, float depth = 1.0f, uint8_t stencil = 0);
+        void GenerateMips(Texture& texture);
+        // Generate a cubemap texture from a panoramic (equirectangular) texture.
+        //void PanoToCubemap(Texture& cubemap, const Texture& pano);
+        //Copy subresource data to a texture.
+        void CopyTextureSubresource(Texture& texture, uint32_t firstSubresource, uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData);
 
         void SetGraphicsDynamicConstantBuffer(uint32_t rootParameterIndex, size_t sizeInBytes, const void* bufferData);
 
@@ -64,6 +83,11 @@ namespace NFGE::Graphics {
         void Dispatch(uint32_t numGroupsX, uint32_t numGroupsY = 1, uint32_t numGroupsZ = 1);
 
         void SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, ID3D12DescriptorHeap* heap);
+
+    private:
+        // Keep track of loaded textures to avoid loading the same texture multiple times.
+        static std::map<std::wstring, ID3D12Resource* > sTextureCache;
+        static std::mutex sTextureCacheMutex;
     private:
         D3D12_COMMAND_LIST_TYPE mD3d12CommandListType;
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> mD3d12CommandList;
@@ -78,8 +102,11 @@ namespace NFGE::Graphics {
         std::unique_ptr<DynamicDescriptorHeap> mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
         ID3D12DescriptorHeap* mDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
+        CommandList* mComputeCommandList;
+
         void TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object);
         void TrackResource(ID3D12Resource* res);
+        void TrackResource(const Resource& res);
         // Binds the current descriptor heaps to the command list.
         void BindDescriptorHeaps();
 
@@ -87,3 +114,35 @@ namespace NFGE::Graphics {
         TrackedObjects mTrackedObjects;
     };
 }
+
+/*
+ *  Copyright(c) 2018 Jeremiah van Oosten
+ *
+ *  Permission is hereby granted, free of charge, to any person obtaining a copy
+ *  of this software and associated documentation files(the "Software"), to deal
+ *  in the Software without restriction, including without limitation the rights
+ *  to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+ *  copies of the Software, and to permit persons to whom the Software is
+ *  furnished to do so, subject to the following conditions :
+ *
+ *  The above copyright notice and this permission notice shall be included in
+ *  all copies or substantial portions of the Software.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ *  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ *  IN THE SOFTWARE.
+ */
+
+ /**
+  *  @file CommandList.h
+  *  @date October 22, 2018
+  *  @author Jeremiah van Oosten
+  *
+  *  @brief CommandList class encapsulates a ID3D12GraphicsCommandList2 interface.
+  *  The CommandList class provides additional functionality that makes working with
+  *  DirectX 12 applications easier.
+  */
