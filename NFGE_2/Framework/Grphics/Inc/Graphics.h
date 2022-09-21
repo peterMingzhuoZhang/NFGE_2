@@ -16,6 +16,7 @@
 #include "DescriptorAllocator.h"
 #include "DescriptorAllocatorPage.h"
 #include "DynamicDescriptorHeap.h"
+#include "GenerateMipsPSO.h"
 #include "GraphicsSystem.h"
 #include "RenderTarget.h"
 #include "Resource.h"

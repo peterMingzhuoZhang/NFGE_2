@@ -84,6 +84,9 @@
     <ClInclude Include="Inc\Texture.h">
       <Filter>Inc\NFGE_D3d12</Filter>
     </ClInclude>
+    <ClInclude Include="Inc\GenerateMipsPSO.h">
+      <Filter>Inc\NFGE_D3d12</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Precompiled.cpp">
@@ -130,6 +133,9 @@
     </ClCompile>
     <ClCompile Include="Src\RenderTarget.cpp">
       <Filter>Src\NFGE_D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GenerateMipsPSO.cpp">
+      <Filter>Src</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
