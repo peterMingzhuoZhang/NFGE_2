@@ -81,7 +81,7 @@ namespace NFGE::Graphics
 				return state;
 			}
 			// If the SubresourceState array (map) is empty, then the State variable defines 
-		// the state of all of the subresources.
+			// the state of all of the subresources.
 			D3D12_RESOURCE_STATES mState;
 			std::map<UINT, D3D12_RESOURCE_STATES> mSubresourceState;
 		};

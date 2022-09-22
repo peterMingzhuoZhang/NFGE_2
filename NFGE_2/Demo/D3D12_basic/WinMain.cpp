@@ -190,7 +190,6 @@ bool Load(int width, int height)
     commandQueue->WaitForFenceValue(fenceValue);
 
     return true;
-
 }
 
 int GetClientWidth(const NFGE::Core::Window& window) 

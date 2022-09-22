@@ -434,7 +434,7 @@ void NFGE::Graphics::GraphicsSystem::UpdateDepthStencilView(ComPtr<ID3D12Device2
 	dsv.Flags = D3D12_DSV_FLAG_NONE;
 
 	device->CreateDepthStencilView(mDepthBuffer.Get(), &dsv,
-		mDSVHeap->GetCPUDescriptorHandleForHeapStart());
+		descriptorHeap->GetCPUDescriptorHandleForHeapStart());
 }
 
 void NFGE::Graphics::GraphicsSystem::Flush()
