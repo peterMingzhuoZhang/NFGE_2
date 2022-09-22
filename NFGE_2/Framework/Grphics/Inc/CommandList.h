@@ -16,6 +16,10 @@ namespace NFGE::Graphics {
     class UploadBuffer;
     class Texture;
     enum class TextureUsage;
+    class GenerateMipsPSO;
+    class VertexBuffer;
+    class IndexBuffer;
+    class RootSignature;
 
     class CommandList 
     {
@@ -41,6 +45,8 @@ namespace NFGE::Graphics {
         void CopyResource(ID3D12Resource* dstRes, ID3D12Resource* srcRes);
         void CopyResource(Resource& dstRes, const Resource& srcRes);
 
+        void SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitiveTopology);
+
         void LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage textureUsage);
         void ClearTexture(const Texture& texture, const float clearColor[4]);
         void ClearDepthStencilTexture(const Texture& texture, D3D12_CLEAR_FLAGS clearFlags, float depth = 1.0f, uint8_t stencil = 0);
@@ -51,6 +57,76 @@ namespace NFGE::Graphics {
         void CopyTextureSubresource(Texture& texture, uint32_t firstSubresource, uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData);
 
         void SetGraphicsDynamicConstantBuffer(uint32_t rootParameterIndex, size_t sizeInBytes, const void* bufferData);
+        template<typename T>
+        void SetGraphicsDynamicConstantBuffer(uint32_t rootParameterIndex, const T& data)
+        {
+            SetGraphicsDynamicConstantBuffer(rootParameterIndex, sizeof(T), &data);
+        }
+
+        void SetGraphics32BitConstants(uint32_t rootParameterIndex, uint32_t numConstants, const void* constants);
+        template<typename T>
+        void SetGraphics32BitConstants(uint32_t rootParameterIndex, const T& constants)
+        {
+            static_assert(sizeof(T) % sizeof(uint32_t) == 0, "Size of type must be a multiple of 4 bytes");
+            SetGraphics32BitConstants(rootParameterIndex, sizeof(T) / sizeof(uint32_t), &constants);
+        }
+
+        void SetCompute32BitConstants(uint32_t rootParameterIndex, uint32_t numConstants, const void* constants);
+        template<typename T>
+        void SetCompute32BitConstants(uint32_t rootParameterIndex, const T& constants)
+        {
+            static_assert(sizeof(T) % sizeof(uint32_t) == 0, "Size of type must be a multiple of 4 bytes");
+            SetCompute32BitConstants(rootParameterIndex, sizeof(T) / sizeof(uint32_t), &constants);
+        }
+
+        void SetVertexBuffer(uint32_t slot, const VertexBuffer& vertexBuffer);
+
+        void SetDynamicVertexBuffer(uint32_t slot, size_t numVertices, size_t vertexSize, const void* vertexBufferData);
+        template<typename T>
+        void SetDynamicVertexBuffer(uint32_t slot, const std::vector<T>& vertexBufferData)
+        {
+            SetDynamicVertexBuffer(slot, vertexBufferData.size(), sizeof(T), vertexBufferData.data());
+        }
+
+        
+        // Bind the index buffer to the rendering pipeline.
+        void SetIndexBuffer(const IndexBuffer& indexBuffer);
+
+        // Bind dynamic index buffer data to the rendering pipeline.
+        void SetDynamicIndexBuffer(size_t numIndicies, DXGI_FORMAT indexFormat, const void* indexBufferData);
+        template<typename T>
+        void SetDynamicIndexBuffer(const std::vector<T>& indexBufferData)
+        {
+            static_assert(sizeof(T) == 2 || sizeof(T) == 4);
+
+            DXGI_FORMAT indexFormat = (sizeof(T) == 2) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+            SetDynamicIndexBuffer(indexBufferData.size(), indexFormat, indexBufferData.data());
+        }
+
+        // Set dynamic structured buffer contents.
+        void SetGraphicsDynamicStructuredBuffer(uint32_t slot, size_t numElements, size_t elementSize, const void* bufferData);
+        template<typename T>
+        void SetGraphicsDynamicStructuredBuffer(uint32_t slot, const std::vector<T>& bufferData)
+        {
+            SetGraphicsDynamicStructuredBuffer(slot, bufferData.size(), sizeof(T), bufferData.data());
+        }
+        
+        // Set viewports.
+        void SetViewport(const D3D12_VIEWPORT& viewport);
+        void SetViewports(const std::vector<D3D12_VIEWPORT>& viewports);
+
+        
+        // Set scissor rects.
+        void SetScissorRect(const D3D12_RECT& scissorRect);
+        void SetScissorRects(const std::vector<D3D12_RECT>& scissorRects);
+
+        
+        // Set the pipeline state object on the command list.
+        void SetPipelineState(Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState);
+
+        // Set the current root signature on the command list.
+        void SetGraphicsRootSignature(const RootSignature& rootSignature);
+        void SetComputeRootSignature(const RootSignature& rootSignature);
 
         void SetShaderResourceView(
             uint32_t rootParameterIndex,
@@ -104,9 +180,14 @@ namespace NFGE::Graphics {
 
         CommandList* mComputeCommandList;
 
+        // Pipeline state object for Mip map generation.
+        std::unique_ptr<GenerateMipsPSO> mGenerateMipsPSO;
+
         void TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object);
         void TrackResource(ID3D12Resource* res);
         void TrackResource(const Resource& res);
+
+        void GenerateMips_UAV(const Texture& texture, DXGI_FORMAT format);
         // Binds the current descriptor heaps to the command list.
         void BindDescriptorHeaps();
 

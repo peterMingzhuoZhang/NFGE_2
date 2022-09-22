@@ -135,6 +135,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Inc\Buffer.h" />
     <ClInclude Include="Inc\Camera.h" />
     <ClInclude Include="Inc\Colors.h" />
     <ClInclude Include="Inc\CommandList.h" />
@@ -148,16 +149,19 @@
     <ClInclude Include="Inc\GenerateMipsPSO.h" />
     <ClInclude Include="Inc\Graphics.h" />
     <ClInclude Include="Inc\GraphicsSystem.h" />
+    <ClInclude Include="Inc\IndexBuffer.h" />
     <ClInclude Include="Inc\RenderTarget.h" />
     <ClInclude Include="Inc\Resource.h" />
     <ClInclude Include="Inc\ResourceStateTracker.h" />
     <ClInclude Include="Inc\RootSignature.h" />
     <ClInclude Include="Inc\Texture.h" />
     <ClInclude Include="Inc\UploadBuffer.h" />
+    <ClInclude Include="Inc\VertexBuffer.h" />
     <ClInclude Include="Src\D3DUtil.h" />
     <ClInclude Include="Src\Precompiled.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Src\Buffer.cpp" />
     <ClCompile Include="Src\CommandList.cpp" />
     <ClCompile Include="Src\CommandQueue.cpp" />
     <ClCompile Include="Src\D3DUtil.cpp" />
@@ -167,6 +171,7 @@
     <ClCompile Include="Src\DescriptorAllocation.cpp" />
     <ClCompile Include="Src\GenerateMipsPSO.cpp" />
     <ClCompile Include="Src\GraphicsSystem.cpp" />
+    <ClCompile Include="Src\IndexBuffer.cpp" />
     <ClCompile Include="Src\Precompiled.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -179,6 +184,7 @@
     <ClCompile Include="Src\RootSignature.cpp" />
     <ClCompile Include="Src\Texture.cpp" />
     <ClCompile Include="Src\UploadBuffer.cpp" />
+    <ClCompile Include="Src\VertexBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\External\DirectXTex-main\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

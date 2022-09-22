@@ -87,6 +87,15 @@
     <ClInclude Include="Inc\GenerateMipsPSO.h">
       <Filter>Inc\NFGE_D3d12</Filter>
     </ClInclude>
+    <ClInclude Include="Inc\VertexBuffer.h">
+      <Filter>Inc\NFGE_D3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Buffer.h">
+      <Filter>Inc\NFGE_D3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\IndexBuffer.h">
+      <Filter>Inc\NFGE_D3d12</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Precompiled.cpp">
@@ -136,6 +145,15 @@
     </ClCompile>
     <ClCompile Include="Src\GenerateMipsPSO.cpp">
       <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Buffer.cpp">
+      <Filter>Src\NFGE_D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\VertexBuffer.cpp">
+      <Filter>Src\NFGE_D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\IndexBuffer.cpp">
+      <Filter>Src\NFGE_D3D12</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

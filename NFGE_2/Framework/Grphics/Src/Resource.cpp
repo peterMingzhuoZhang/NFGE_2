@@ -38,12 +38,14 @@ Resource::Resource(const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VA
 
     ResourceStateTracker::AddGlobalResourceState(mD3d12Resource.Get(), D3D12_RESOURCE_STATE_COMMON);
 
+    CheckFeatureSupport();
     SetName(name);
 }
 
 Resource::Resource(Microsoft::WRL::ComPtr<ID3D12Resource> resource, const std::wstring& name)
     : mD3d12Resource(resource)
 {
+    CheckFeatureSupport();
     SetName(name);
 }
 
@@ -108,6 +110,7 @@ void Resource::SetD3D12Resource(Microsoft::WRL::ComPtr<ID3D12Resource> d3d12Reso
     {
         mD3d12ClearValue.reset();
     }
+    CheckFeatureSupport();
     SetName(mResourceName);
 }
 
@@ -124,4 +127,33 @@ void Resource::Reset()
 {
     mD3d12Resource.Reset();
     mD3d12ClearValue.reset();
+}
+
+bool Resource::CheckFormatSupport(D3D12_FORMAT_SUPPORT1 formatSupport) const
+{
+    return (mFormatSupport.Support1 & formatSupport) != 0;
+}
+
+bool Resource::CheckFormatSupport(D3D12_FORMAT_SUPPORT2 formatSupport) const
+{
+    return (mFormatSupport.Support2 & formatSupport) != 0;
+}
+
+void Resource::CheckFeatureSupport()
+{
+    if (mD3d12Resource)
+    {
+        auto desc = mD3d12Resource->GetDesc();
+        auto device = NFGE::Graphics::GetDevice();
+
+        mFormatSupport.Format = desc.Format;
+        ThrowIfFailed(device->CheckFeatureSupport(
+            D3D12_FEATURE_FORMAT_SUPPORT,
+            &mFormatSupport,
+            sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)));
+    }
+    else
+    {
+        mFormatSupport = {};
+    }
 }

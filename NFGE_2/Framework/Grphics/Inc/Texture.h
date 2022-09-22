@@ -78,25 +78,26 @@ namespace NFGE::Graphics {
          */
         virtual D3D12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() const;
 
-        static bool CheckSRVSupport(D3D12_FORMAT_SUPPORT1 formatSupport)
+        bool CheckSRVSupport()
         {
-            return ((formatSupport & D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE) != 0 ||
-                (formatSupport & D3D12_FORMAT_SUPPORT1_SHADER_LOAD) != 0);
+            return CheckFormatSupport(D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE);
         }
 
-        static bool CheckRTVSupport(D3D12_FORMAT_SUPPORT1 formatSupport)
+        bool CheckRTVSupport()
         {
-            return ((formatSupport & D3D12_FORMAT_SUPPORT1_RENDER_TARGET) != 0);
+            return CheckFormatSupport(D3D12_FORMAT_SUPPORT1_RENDER_TARGET);
         }
 
-        static bool CheckUAVSupport(D3D12_FORMAT_SUPPORT1 formatSupport)
+        bool CheckUAVSupport()
         {
-            return ((formatSupport & D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW) != 0);
+            return CheckFormatSupport(D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW) &&
+                CheckFormatSupport(D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD) &&
+                CheckFormatSupport(D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE);
         }
 
-        static bool CheckDSVSupport(D3D12_FORMAT_SUPPORT1 formatSupport)
+        bool CheckDSVSupport()
         {
-            return ((formatSupport & D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL) != 0);
+            return CheckFormatSupport(D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL);
         }
 
         static bool IsUAVCompatibleFormat(DXGI_FORMAT format);
@@ -106,6 +107,7 @@ namespace NFGE::Graphics {
 
         // Return a typeless format from the given format.
         static DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT format);
+        static DXGI_FORMAT GetUAVCompatableFormat(DXGI_FORMAT format);
 
     protected:
 

@@ -8,6 +8,7 @@
 
 #include "Common.h"
 
+#include "Buffer.h"
 #include "Camera.h"
 #include "CommandList.h"
 #include "CommandQueue.h"
@@ -18,9 +19,11 @@
 #include "DynamicDescriptorHeap.h"
 #include "GenerateMipsPSO.h"
 #include "GraphicsSystem.h"
+#include "IndexBuffer.h"
 #include "RenderTarget.h"
 #include "Resource.h"
 #include "ResourceStateTracker.h"
 #include "RootSignature.h"
 #include "Texture.h"
 #include "UploadBuffer.h"
+#include "VertexBuffer.h"

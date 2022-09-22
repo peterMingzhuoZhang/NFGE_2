@@ -164,18 +164,14 @@ void Texture::CreateViews()
 
         CD3DX12_RESOURCE_DESC desc(mD3d12Resource->GetDesc());
 
-        D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport;
-        formatSupport.Format = desc.Format;
-        ThrowIfFailed(device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)));
-
         if ((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) != 0 &&
-            CheckRTVSupport(formatSupport.Support1))
+            CheckRTVSupport())
         {
             mRenderTargetView = NFGE::Graphics::AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
             device->CreateRenderTargetView(mD3d12Resource.Get(), nullptr, mRenderTargetView.GetDescriptorHandle());
         }
         if ((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0 &&
-            CheckDSVSupport(formatSupport.Support1))
+            CheckDSVSupport())
         {
             mDepthStencilView = NFGE::Graphics::AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
             device->CreateDepthStencilView(mD3d12Resource.Get(), nullptr, mDepthStencilView.GetDescriptorHandle());
@@ -443,4 +439,29 @@ DXGI_FORMAT Texture::GetTypelessFormat(DXGI_FORMAT format)
     }
 
     return typelessFormat;
+}
+
+DXGI_FORMAT NFGE::Graphics::Texture::GetUAVCompatableFormat(DXGI_FORMAT format)
+{
+    DXGI_FORMAT uavFormat = format;
+
+    switch (format)
+    {
+    case DXGI_FORMAT_R8G8B8A8_TYPELESS:
+    case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+    case DXGI_FORMAT_B8G8R8A8_UNORM:
+    case DXGI_FORMAT_B8G8R8X8_UNORM:
+    case DXGI_FORMAT_B8G8R8A8_TYPELESS:
+    case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+    case DXGI_FORMAT_B8G8R8X8_TYPELESS:
+    case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
+        uavFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+        break;
+    case DXGI_FORMAT_R32_TYPELESS:
+    case DXGI_FORMAT_D32_FLOAT:
+        uavFormat = DXGI_FORMAT_R32_FLOAT;
+        break;
+    }
+
+    return uavFormat;
 }
