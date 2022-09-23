@@ -22,6 +22,15 @@
     <Filter Include="Src\NFGE_D3D12">
       <UniqueIdentifier>{1b00ecd9-38c1-4161-bb72-0250a14c22bb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Inc\Mesh">
+      <UniqueIdentifier>{6b3d0e7a-c100-4992-86e3-c1eeedcaa404}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Inc\RenderObject">
+      <UniqueIdentifier>{faee2b0f-c7d8-41d6-867b-c5c27eaa7e2c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\Mesh">
+      <UniqueIdentifier>{7e5d9856-4de2-44ad-a3ed-1cac9a440075}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Inc\Common.h">
@@ -81,9 +90,6 @@
     <ClInclude Include="Inc\RenderTarget.h">
       <Filter>Inc\NFGE_D3d12</Filter>
     </ClInclude>
-    <ClInclude Include="Inc\Texture.h">
-      <Filter>Inc\NFGE_D3d12</Filter>
-    </ClInclude>
     <ClInclude Include="Inc\GenerateMipsPSO.h">
       <Filter>Inc\NFGE_D3d12</Filter>
     </ClInclude>
@@ -95,6 +101,30 @@
     </ClInclude>
     <ClInclude Include="Inc\IndexBuffer.h">
       <Filter>Inc\NFGE_D3d12</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Light.h">
+      <Filter>Inc\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Material.h">
+      <Filter>Inc\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Texture.h">
+      <Filter>Inc\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\TextureManager.h">
+      <Filter>Inc\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\VertexType.h">
+      <Filter>Inc\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Mesh.h">
+      <Filter>Inc\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Model.h">
+      <Filter>Inc\RenderObject</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Geometry.h">
+      <Filter>Inc\RenderObject</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -154,6 +184,9 @@
     </ClCompile>
     <ClCompile Include="Src\IndexBuffer.cpp">
       <Filter>Src\NFGE_D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Mesh.cpp">
+      <Filter>Src\Mesh</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

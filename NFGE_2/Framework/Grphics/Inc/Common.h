@@ -164,3 +164,12 @@ namespace std
         }
     };
 }
+
+namespace NFGE::Graphics
+{
+    enum class IOOption
+    {
+        Binary = 0,
+        RV			//------------- Readable Value
+    };
+}

@@ -96,12 +96,17 @@ namespace NFGE::Graphics {
 		void Flush();
 
 		// DirectX 12 Objects
+		// Allocation and Control
 		ComPtr<ID3D12Device2> mDevice{ nullptr };
 		ComPtr<ID3D12GraphicsCommandList2> mCurrentCommandList{ nullptr };
 		std::unique_ptr<CommandQueue> mDirectCommandQueue{ nullptr };
 		std::unique_ptr<CommandQueue> mComputeCommandQueue{ nullptr };
 		std::unique_ptr<CommandQueue> mCopyCommandQueue{ nullptr };
+
+		// SwapChian
 		ComPtr<IDXGISwapChain4> mSwapChain{ nullptr };
+
+		// Memory
 		ComPtr<ID3D12Resource> mBackBuffers[sNumFrames]{ nullptr };
 		UINT mCurrentBackBufferIndex{ 0 };
 		ComPtr<ID3D12DescriptorHeap> mRTVDescriptorHeap{ nullptr };

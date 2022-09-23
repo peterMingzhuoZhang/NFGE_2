@@ -207,7 +207,7 @@ void NFGE::Graphics::ResourceStateTracker::FlushResourceBarriers(CommandList& co
 
 void NFGE::Graphics::ResourceStateTracker::CommitFinalResourceStates()
 {
-    ASSERT(sIsLocked);
+    ASSERT(sIsLocked, "Can not commit on unLock resource state. ");
 
     // Commit final resource states to the global resource state array (map).
     for (const auto& resourceState : mFinalResourceState)

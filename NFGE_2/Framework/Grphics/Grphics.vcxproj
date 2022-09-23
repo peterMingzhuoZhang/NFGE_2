@@ -147,16 +147,23 @@
     <ClInclude Include="Inc\DescriptorAllocatorPage.h" />
     <ClInclude Include="Inc\DynamicDescriptorHeap.h" />
     <ClInclude Include="Inc\GenerateMipsPSO.h" />
+    <ClInclude Include="Inc\Geometry.h" />
     <ClInclude Include="Inc\Graphics.h" />
     <ClInclude Include="Inc\GraphicsSystem.h" />
     <ClInclude Include="Inc\IndexBuffer.h" />
+    <ClInclude Include="Inc\Light.h" />
+    <ClInclude Include="Inc\Material.h" />
+    <ClInclude Include="Inc\Mesh.h" />
+    <ClInclude Include="Inc\Model.h" />
     <ClInclude Include="Inc\RenderTarget.h" />
     <ClInclude Include="Inc\Resource.h" />
     <ClInclude Include="Inc\ResourceStateTracker.h" />
     <ClInclude Include="Inc\RootSignature.h" />
     <ClInclude Include="Inc\Texture.h" />
+    <ClInclude Include="Inc\TextureManager.h" />
     <ClInclude Include="Inc\UploadBuffer.h" />
     <ClInclude Include="Inc\VertexBuffer.h" />
+    <ClInclude Include="Inc\VertexType.h" />
     <ClInclude Include="Src\D3DUtil.h" />
     <ClInclude Include="Src\Precompiled.h" />
   </ItemGroup>
@@ -172,6 +179,7 @@
     <ClCompile Include="Src\GenerateMipsPSO.cpp" />
     <ClCompile Include="Src\GraphicsSystem.cpp" />
     <ClCompile Include="Src\IndexBuffer.cpp" />
+    <ClCompile Include="Src\Mesh.cpp" />
     <ClCompile Include="Src\Precompiled.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

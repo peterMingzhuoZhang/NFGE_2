@@ -29,7 +29,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Assets", "Assets", "{5886F1
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shaders", "Shaders", "{7095640A-FCE0-4EC8-9594-C98510198C6A}"
 	ProjectSection(SolutionItems) = preProject
-		GenerateMips_CS.hlsl = GenerateMips_CS.hlsl
+		Assets\Shaders\GenerateMips_CS.hlsl = Assets\Shaders\GenerateMips_CS.hlsl
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DirectXTex", "External\DirectXTex-main\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj", "{371B9FA9-4C90-4AC6-A123-ACED756D6C77}"
