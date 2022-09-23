@@ -177,6 +177,7 @@
     <ClCompile Include="Src\DescriptorAllocatorPage.cpp" />
     <ClCompile Include="Src\DescriptorAllocation.cpp" />
     <ClCompile Include="Src\GenerateMipsPSO.cpp" />
+    <ClCompile Include="Src\Geometry.cpp" />
     <ClCompile Include="Src\GraphicsSystem.cpp" />
     <ClCompile Include="Src\IndexBuffer.cpp" />
     <ClCompile Include="Src\Mesh.cpp" />

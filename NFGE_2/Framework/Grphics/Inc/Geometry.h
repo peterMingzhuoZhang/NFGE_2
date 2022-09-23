@@ -10,11 +10,11 @@
 #include "Light.h"
 namespace NFGE::Graphics
 {
-	//template <typename T>
+	template <typename MeshType>
 	class Geometry
 	{
-		MeshPC mMesh;
-		struct GeometryMeshRenderConstants {
+		MeshType mMesh;
+		struct GeometryMeshRenderStrcuture {
 			// Constant buffer for Transform matrixs
 			// Constant buffer for Light
 			// Constant buffer for material
@@ -23,7 +23,7 @@ namespace NFGE::Graphics
 			// PixelShader --> pipeline state
 
 			// Textures
-		} mModelMeshRenderConstants;
+		} mMeshRenderStrcuture;
 
 		struct GeometryMeshContext {
 			NFGE::Math::Matrix4 custumAdjustMatrix = NFGE::Math::Matrix4::sIdentity();
@@ -34,12 +34,12 @@ namespace NFGE::Graphics
 			NFGE::Math::Vector3 scale = NFGE::Math::Vector3::One();
 
 			// TransformData mTransformData;
-			// DirectionalLight* light;
+			DirectionalLight* mLight;
 			// std::vector<Material> materials;
-		} mModelMeshContext;
+		} mMeshContext;
 
 	public:
-		void Load(DirectionalLight* directionLight = nullptr);
+		void Load(MeshType mesh, DirectionalLight* directionLight);
 		void UnLoad();
 		void Update(float deltaTime);
 		void Render(const NFGE::Graphics::Camera& camera);
@@ -47,4 +47,16 @@ namespace NFGE::Graphics
 	};
 
 	
+	template<typename MeshType>
+	inline void Geometry<MeshType>::Load(MeshType mesh, DirectionalLight* directionLight)
+	{
+		mMesh = std::move(mesh);
+		mModelMeshContext.mLight = directionLight;
+	}
+
+	template<typename MeshType>
+	inline void Geometry<MeshType>::UnLoad()
+	{
+	}
+
 }

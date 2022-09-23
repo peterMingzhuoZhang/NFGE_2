@@ -31,6 +31,9 @@
     <Filter Include="Src\Mesh">
       <UniqueIdentifier>{7e5d9856-4de2-44ad-a3ed-1cac9a440075}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Src\RenderObject">
+      <UniqueIdentifier>{743816b8-d10b-434a-85f7-ea2e850fdc51}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Inc\Common.h">
@@ -187,6 +190,9 @@
     </ClCompile>
     <ClCompile Include="Src\Mesh.cpp">
       <Filter>Src\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Geometry.cpp">
+      <Filter>Src\RenderObject</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

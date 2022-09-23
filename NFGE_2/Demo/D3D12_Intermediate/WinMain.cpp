@@ -2,6 +2,19 @@
 #include <Grphics/Inc/Graphics.h>
 #include <NFGE_2/Inc/NFGE_2.h>
 
+NFGE::Graphics::Geometry myBall;
+NFGE::Graphics::DirectionalLight myLight;
+
+void Load()
+{
+    myLight.direction = NFGE::Math::Normalize({ 1.0f,-1.0f,-1.0f });
+    myLight.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
+    myLight.diffuse = { 0.6f, 0.6f, 0.6f, 1.0f };
+    myLight.specular = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+    
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
     NFGE::Core::Window myWindow;
