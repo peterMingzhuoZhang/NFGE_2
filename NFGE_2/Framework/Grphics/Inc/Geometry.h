@@ -65,6 +65,8 @@ namespace NFGE::Graphics
 	{
 		mMesh = std::move(mesh);
 		mModelMeshContext.mLight = directionLight;
+
+
 	}
 
 	template<typename MeshType>

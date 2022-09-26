@@ -26,6 +26,7 @@
 #include "Material.h"
 #include "Mesh.h"
 #include "Model.h"
+#include "PipelineWorker.h"
 #include "RenderTarget.h"
 #include "Resource.h"
 #include "ResourceStateTracker.h"
