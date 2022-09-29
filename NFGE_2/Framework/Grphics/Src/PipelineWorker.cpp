@@ -8,8 +8,17 @@
 
 #include "D3DUtil.h"
 
+#include "GraphicsSystem.h"
+
 using namespace NFGE::Graphics;
 
-void NFGE::Graphics::PipelineWork::Load(Geometry<VertexPNX>& renderObject)
+void NFGE::Graphics::PipelineWork::Load(GeometryPNX& renderObject)
 {
+    auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
+    ASSERT(graphicSystem, "GraphicsSystem is not initialized.");
+    auto device = NFGE::Graphics::GetDevice();
+    auto commandQueue = NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
+    auto commandList = commandQueue->GetCommandList();
+
+
 }

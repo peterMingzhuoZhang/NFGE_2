@@ -34,6 +34,9 @@
     <Filter Include="Src\RenderObject">
       <UniqueIdentifier>{743816b8-d10b-434a-85f7-ea2e850fdc51}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Src\Material">
+      <UniqueIdentifier>{bf4f11c3-ba61-403c-bfdb-f543e2463be7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Inc\Common.h">
@@ -173,9 +176,6 @@
     <ClCompile Include="Src\Resource.cpp">
       <Filter>Src\NFGE_D3D12</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Texture.cpp">
-      <Filter>Src\NFGE_D3D12</Filter>
-    </ClCompile>
     <ClCompile Include="Src\RenderTarget.cpp">
       <Filter>Src\NFGE_D3D12</Filter>
     </ClCompile>
@@ -199,6 +199,12 @@
     </ClCompile>
     <ClCompile Include="Src\PipelineWorker.cpp">
       <Filter>Src\NFGE_D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Texture.cpp">
+      <Filter>Src\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\TextureManager.cpp">
+      <Filter>Src\Material</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

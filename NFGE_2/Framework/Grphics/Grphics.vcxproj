@@ -194,6 +194,7 @@
     <ClCompile Include="Src\ResourceStateTracker.cpp" />
     <ClCompile Include="Src\RootSignature.cpp" />
     <ClCompile Include="Src\Texture.cpp" />
+    <ClCompile Include="Src\TextureManager.cpp" />
     <ClCompile Include="Src\UploadBuffer.cpp" />
     <ClCompile Include="Src\VertexBuffer.cpp" />
   </ItemGroup>

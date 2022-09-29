@@ -85,7 +85,6 @@ bool Load(int width, int height)
     indexBufferView.Format = DXGI_FORMAT_R16_UINT;
     indexBufferView.SizeInBytes = sizeof(cubeIndicies);
 
-    // Create the descriptor heap for the depth-stencil view.
 
     // Load the vertex shader.
    /* ComPtr<ID3DBlob> vertexShaderBlob;
@@ -108,7 +107,7 @@ bool Load(int width, int height)
     /*ComPtr<ID3DBlob> pixelShaderBlob;
     ThrowIfFailed(D3DReadFileToBlob(L"PixelShader.cso", &pixelShaderBlob));*/
 
-    // Compile our vertex shader code
+    // Compile our pixel shader code
     ComPtr<ID3DBlob> pixelShaderBlob = nullptr;
     hr = D3DCompileFromFile(
         L"PixelShader.hlsl",

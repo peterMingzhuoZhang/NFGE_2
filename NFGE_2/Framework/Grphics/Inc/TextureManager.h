@@ -24,7 +24,7 @@ namespace NFGE::Graphics
 
 		void SetRootPath(std::filesystem::path rootPath);
 
-		TextureId LoadTexture(std::filesystem::path filename, bool isUsingRootPath = true); // Need PipelineWorker instance
+		TextureId LoadTexture(std::filesystem::path filename, TextureUsage textureUsage, bool isUsingRootPath = true); // Need PipelineWorker instance
 		void Clear();
 		Texture* GetTexture(TextureId textureId);
 

@@ -55,7 +55,7 @@ namespace NFGE::Graphics
 		}
 
 		const std::vector<VertexType>& GetVertices() const { return mVertices; }
-		std::vector<uint32_t> GetIndices() const { return mIndices; }
+		const std::vector<uint32_t>& GetIndices() const { return mIndices; }
 		uint32_t GetVertexCount() const { return mNumVertices; }
 		uint32_t GetIndexCount() const { return mNumIndices; }
 
@@ -110,5 +110,7 @@ namespace NFGE::Graphics
 		static NFGE::Math::AABB ComputeBound(const Mesh& mesh);
 		static void ComputeNormals(Mesh& mesh);
 	};
+
+
 
 } // namespace NFGE::Graphics

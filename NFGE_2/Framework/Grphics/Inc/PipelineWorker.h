@@ -14,6 +14,16 @@ namespace NFGE::Graphics
 	class PipelineWork 
 	{
 	public:
-		void Load(Geometry<VertexPNX>& renderObject);
+		void Load(GeometryPNX& renderObject);
 	};
+
+	//comptr d3d12 rootSignature
+	//comptr d3d12 pipelineState
+		// |-VertexShader
+		// |-PixelShader
+
+	//Constant buffer
+	//Resource for Texture
+
+	
 }
