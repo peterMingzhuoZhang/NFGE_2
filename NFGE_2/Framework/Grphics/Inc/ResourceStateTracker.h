@@ -9,7 +9,6 @@
 
 namespace NFGE::Graphics 
 {
-	class CommandList;
 
 	class ResourceStateTracker
 	{
@@ -32,8 +31,8 @@ namespace NFGE::Graphics
 		void UAVBarrier(ID3D12Resource* resource = nullptr);
 		void AliasBarrier(ID3D12Resource* resourceBefore = nullptr, ID3D12Resource* resourceAfter = nullptr);
 
-		uint32_t FlushPendingResourceBarriers(CommandList& commandList);
-		void FlushResourceBarriers(CommandList& commandList);
+		uint32_t FlushPendingResourceBarriers(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList);
+		void FlushResourceBarriers(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList);
 
 		void CommitFinalResourceStates();
 		void Reset();

@@ -10,22 +10,132 @@
 #include "d3dx12.h"
 #include "D3DUtil.h"
 #include "ResourceStateTracker.h"
-#include "CommandList.h"
+//#include "CommandList.h"
+#include "CommandQueue.h"
 using namespace NFGE::Graphics;
 using namespace DirectX;
+using namespace Microsoft::WRL;
 
 namespace
 {
 	std::unique_ptr<TextureManager> sInstance = nullptr;
 
-	void LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage textureUsage, CommandList& commandlist)
+	void LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage textureUsage, ComPtr<ID3D12GraphicsCommandList2> commandlist);
+
+    void CopyTextureSubresource(Texture& texture, uint32_t firstSubresource, uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData);
+
+    void GenerateMips(Texture& texture);
+
+    void GenerateMips_UAV(const Texture& texture, DXGI_FORMAT format);
+}
+
+void NFGE::Graphics::TextureManager::StaticInitialize(std::filesystem::path rootPath)
+{
+	ASSERT(sInstance == nullptr, "[TextureManager] System already initlizlized!");
+	sInstance = std::make_unique<TextureManager>();
+	sInstance->SetRootPath(std::move(rootPath));
+}
+
+void NFGE::Graphics::TextureManager::StaticTerminate()
+{
+	if (sInstance != nullptr)
 	{
+		sInstance.reset();
+	}
+}
+
+TextureManager* NFGE::Graphics::TextureManager::Get()
+{
+	ASSERT(sInstance != nullptr, "[TextureManager] System already initlizlized!");
+	return sInstance.get();
+}
+
+NFGE::Graphics::TextureManager::~TextureManager()
+{
+	// TODO Do some error checks here, but we need a way to unload sepecific textures first
+	// Maybe add the concept of texture group
+	for (auto& [key, value] : mInventory)
+	{
+		value->Reset();
+	}
+}
+
+void NFGE::Graphics::TextureManager::SetRootPath(std::filesystem::path rootPath)
+{
+	ASSERT(std::filesystem::is_directory(rootPath), "[TextureManager] %s is not a directory!", (char*)rootPath.c_str());
+	mRootPath = std::move(rootPath);
+	//if (mRootPath.back() != L'/')
+	//	mRootPath += L'/';
+}
+
+TextureId NFGE::Graphics::TextureManager::LoadTexture(std::filesystem::path filename, TextureUsage textureUsage, bool isUsingRootPath)
+{
+
+	auto hash = std::filesystem::hash_value(filename);
+	auto [iter, success] = mInventory.insert({ hash, nullptr });
+	if (success)
+	{
+        auto commandList = NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COPY)->GetCommandList();
+		iter->second = std::make_unique<Texture>();
+        if (isUsingRootPath)
+            LoadTextureFromFile(*iter->second, mRootPath / filename, textureUsage, commandList);
+        else
+            LoadTextureFromFile(*iter->second, filename, textureUsage, commandList);
+	}
+	else
+	{
+		int a = 0;
+	}
+	return hash;
+}
+
+void TextureManager::Clear()
+{
+	for (auto& item : mInventory)
+	{
+		if (item.second)
+		{
+			item.second->Reset();
+		}
+	}
+	mInventory.clear();
+}
+
+Texture* NFGE::Graphics::TextureManager::GetTexture(TextureId textureId)
+{
+
+	auto iter = mInventory.find(textureId);
+	return iter != mInventory.end() ? iter->second.get() : nullptr;
+}
+
+uint32_t NFGE::Graphics::TextureManager::GetSpriteWidth(TextureId textureId)
+{
+	Texture* texture = TextureManager::Get()->GetTexture(textureId);
+	return texture ? texture->GetWidth() : 0u;
+}
+
+uint32_t NFGE::Graphics::TextureManager::GetSpriteHeight(TextureId textureId)
+{
+	Texture* texture = TextureManager::Get()->GetTexture(textureId);
+	return texture ? texture->GetHeight() : 0u;
+}
+
+void* NFGE::Graphics::TextureManager::GetSprite(TextureId textureId)
+{
+	Texture* texture = TextureManager::Get()->GetTexture(textureId);
+	return texture ? texture->GetD3D12Resource().Get() : nullptr;
+}
+
+namespace // Internal linkage function defination
+{
+    void LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage textureUsage, ComPtr<ID3D12GraphicsCommandList2> commandlist)
+    {
         auto device = NFGE::Graphics::GetDevice();
 
         TexMetadata metadata;
         ScratchImage scratchImage;
         Microsoft::WRL::ComPtr<ID3D12Resource> textureResource;
-        
+
         std::filesystem::path filePath(fileName);
         if (filePath.extension() == ".dds")
         {
@@ -93,107 +203,43 @@ namespace
             subresource.pData = pImages[i].pixels;
         }
 
-        commandlist.CopyTextureSubresource(texture, 0, static_cast<uint32_t>(subresources.size()), subresources.data());
+        CopyTextureSubresource(texture, 0, static_cast<uint32_t>(subresources.size()), subresources.data());
 
         if (subresources.size() < textureResource->GetDesc().MipLevels)
         {
             commandlist.GenerateMips(texture);
         }
-	}
-}
+    }
 
-void NFGE::Graphics::TextureManager::StaticInitialize(std::filesystem::path rootPath)
-{
-	ASSERT(sInstance == nullptr, "[TextureManager] System already initlizlized!");
-	sInstance = std::make_unique<TextureManager>();
-	sInstance->SetRootPath(std::move(rootPath));
-}
+    void CopyTextureSubresource(Texture& texture, uint32_t firstSubresource, uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData)
+    {
+        auto device = NFGE::Graphics::GetDevice();
+        auto destinationResource = texture.GetD3D12Resource();
+        if (destinationResource)
+        {
+            // Resource must be in the copy-destination state.
+            TransitionBarrier(texture, D3D12_RESOURCE_STATE_COPY_DEST);
+            FlushResourceBarriers();
 
-void NFGE::Graphics::TextureManager::StaticTerminate()
-{
-	if (sInstance != nullptr)
-	{
-		sInstance.reset();
-	}
-}
+            UINT64 requiredSize = GetRequiredIntermediateSize(destinationResource.Get(), firstSubresource, numSubresources);
 
-TextureManager* NFGE::Graphics::TextureManager::Get()
-{
-	ASSERT(sInstance != nullptr, "[TextureManager] System already initlizlized!");
-	return sInstance.get();
-}
+            // Create a temporary (intermediate) resource for uploading the subresources
+            Microsoft::WRL::ComPtr<ID3D12Resource> intermediateResource;
+            auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+            auto resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(requiredSize);
+            ThrowIfFailed(device->CreateCommittedResource(
+                &heapProperties,
+                D3D12_HEAP_FLAG_NONE,
+                &resourceDesc,
+                D3D12_RESOURCE_STATE_GENERIC_READ,
+                nullptr,
+                IID_PPV_ARGS(&intermediateResource)
+            ));
 
-NFGE::Graphics::TextureManager::~TextureManager()
-{
-	// TODO Do some error checks here, but we need a way to unload sepecific textures first
-	// Maybe add the concept of texture group
-	for (auto& [key, value] : mInventory)
-	{
-		value->Reset();
-	}
-}
+            UpdateSubresources(mD3d12CommandList.Get(), destinationResource.Get(), intermediateResource.Get(), 0, firstSubresource, numSubresources, subresourceData);
 
-void NFGE::Graphics::TextureManager::SetRootPath(std::filesystem::path rootPath)
-{
-	ASSERT(std::filesystem::is_directory(rootPath), "[TextureManager] %s is not a directory!", (char*)rootPath.c_str());
-	mRootPath = std::move(rootPath);
-	//if (mRootPath.back() != L'/')
-	//	mRootPath += L'/';
-}
-
-TextureId NFGE::Graphics::TextureManager::LoadTexture(std::filesystem::path filename, TextureUsage textureUsage, bool isUsingRootPath)
-{
-
-	auto hash = std::filesystem::hash_value(filename);
-	auto [iter, success] = mInventory.insert({ hash, nullptr });
-	if (success)
-	{
-		iter->second = std::make_unique<Texture>();
-		if (isUsingRootPath)
-			LoadTextureFromFile(*iter->second, mRootPath / filename, textureUsage, );
-		else
-			iter->second->Initialize(filename);
-	}
-	else
-	{
-		int a = 0;
-	}
-	return hash;
-}
-
-void TextureManager::Clear()
-{
-	for (auto& item : mInventory)
-	{
-		if (item.second)
-		{
-			item.second->Reset();
-		}
-	}
-	mInventory.clear();
-}
-
-Texture* NFGE::Graphics::TextureManager::GetTexture(TextureId textureId)
-{
-
-	auto iter = mInventory.find(textureId);
-	return iter != mInventory.end() ? iter->second.get() : nullptr;
-}
-
-uint32_t NFGE::Graphics::TextureManager::GetSpriteWidth(TextureId textureId)
-{
-	Texture* texture = TextureManager::Get()->GetTexture(textureId);
-	return texture ? texture->GetWidth() : 0u;
-}
-
-uint32_t NFGE::Graphics::TextureManager::GetSpriteHeight(TextureId textureId)
-{
-	Texture* texture = TextureManager::Get()->GetTexture(textureId);
-	return texture ? texture->GetHeight() : 0u;
-}
-
-void* NFGE::Graphics::TextureManager::GetSprite(TextureId textureId)
-{
-	Texture* texture = TextureManager::Get()->GetTexture(textureId);
-	return texture ? texture->GetD3D12Resource().Get() : nullptr;
+            TrackObject(intermediateResource);
+            TrackObject(destinationResource);
+        }
+    }
 }

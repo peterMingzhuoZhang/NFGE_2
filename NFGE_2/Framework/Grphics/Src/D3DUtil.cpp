@@ -65,6 +65,11 @@ UINT NFGE::Graphics::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE
     return NFGE::Graphics::GraphicsSystem::Get()->mDevice->GetDescriptorHandleIncrementSize(type);
 }
 
+void NFGE::Graphics::TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object)
+{
+    NFGE::Graphics::GraphicsSystem::Get()->TrackObject(object);
+}
+
 std::vector<D3D12_INPUT_ELEMENT_DESC> NFGE::Graphics::GetVectexLayout(uint32_t vertexFormat)
 {
     std::vector<D3D12_INPUT_ELEMENT_DESC> desc;

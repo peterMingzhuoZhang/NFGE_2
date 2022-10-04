@@ -10,6 +10,8 @@
 #include "D3DUtil.h"
 #include "DescriptorAllocator.h"
 #include "DescriptorAllocatorPage.h"
+#include "Resource.h"
+#include "ResourceStateTracker.h"
 
 using namespace NFGE;
 using namespace NFGE::Graphics;
@@ -379,6 +381,94 @@ uint32_t NFGE::Graphics::GraphicsSystem::GetBackBufferHeight() const
 	return mHeight;
 }
 
+void NFGE::Graphics::GraphicsSystem::TransitionBarrier(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateAfter, UINT subResource, bool flushBarriers)
+{
+	if (resource)
+	{
+		// The "before" state is not important. It will be resolved by the resource state tracker.
+		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_COMMON, stateAfter, subResource);
+		mResourceStateTracker->ResourceBarrier(barrier);
+	}
+
+	if (flushBarriers)
+	{
+		mResourceStateTracker->FlushResourceBarriers(mCurrentCommandList);
+	}
+}
+
+void NFGE::Graphics::GraphicsSystem::TransitionBarrier(const Resource& resource, D3D12_RESOURCE_STATES stateAfter, UINT subresource, bool flushBarriers)
+{
+	auto d3d12Resource = resource.GetD3D12Resource();
+	TransitionBarrier(d3d12Resource.Get(), stateAfter, subresource, flushBarriers);
+}
+
+void GraphicsSystem::UAVBarrier(ID3D12Resource* resource, bool flushBarriers)
+{
+	auto barrier = CD3DX12_RESOURCE_BARRIER::UAV(resource);
+
+	mResourceStateTracker->ResourceBarrier(barrier);
+
+	if (flushBarriers)
+	{
+		FlushResourceBarriers();
+	}
+}
+
+void NFGE::Graphics::GraphicsSystem::UAVBarrier(const Resource& resource, bool flushBarriers)
+{
+	auto d3d12Resource = resource.GetD3D12Resource();
+	UAVBarrier(d3d12Resource.Get(), flushBarriers);
+}
+
+void GraphicsSystem::AliasingBarrier(ID3D12Resource* beforeResource, ID3D12Resource* afterResource, bool flushBarriers)
+{
+	auto barrier = CD3DX12_RESOURCE_BARRIER::Aliasing(beforeResource, afterResource);
+
+	mResourceStateTracker->ResourceBarrier(barrier);
+
+	if (flushBarriers)
+	{
+		FlushResourceBarriers();
+	}
+}
+
+void NFGE::Graphics::GraphicsSystem::AliasingBarrier(const Resource& beforeResource, const Resource& afterResource, bool flushBarriers)
+{
+	auto d3d12ResourceBefore = beforeResource.GetD3D12Resource();
+	auto d3d12ResourceAfter = afterResource.GetD3D12Resource();
+	AliasingBarrier(d3d12ResourceBefore.Get(), d3d12ResourceAfter.Get(), flushBarriers);
+}
+
+void GraphicsSystem::FlushResourceBarriers()
+{
+	mResourceStateTracker->FlushResourceBarriers(mCurrentCommandList);
+}
+
+void GraphicsSystem::CopyResource(ID3D12Resource* dstRes, ID3D12Resource* srcRes)
+{
+	TransitionBarrier(dstRes, D3D12_RESOURCE_STATE_COPY_DEST);
+	TransitionBarrier(srcRes, D3D12_RESOURCE_STATE_COPY_SOURCE);
+
+	FlushResourceBarriers();
+
+	mCurrentCommandList->CopyResource(dstRes, srcRes);
+
+	TrackResource(dstRes);
+	TrackResource(srcRes);
+}
+
+void NFGE::Graphics::GraphicsSystem::CopyResource(Resource& dstRes, const Resource& srcRes)
+{
+	auto d3d12ResourceDst = dstRes.GetD3D12Resource();
+	auto d3d12ResourceSrc = srcRes.GetD3D12Resource();
+	CopyResource(d3d12ResourceDst.Get(), d3d12ResourceSrc.Get());
+}
+
+void NFGE::Graphics::GraphicsSystem::SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitiveTopology)
+{
+	mCurrentCommandList->IASetPrimitiveTopology(primitiveTopology);
+}
+
 D3D12_CPU_DESCRIPTOR_HANDLE NFGE::Graphics::GraphicsSystem::GetCurrentRenderTargetView() const
 {
 	return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
@@ -388,6 +478,21 @@ D3D12_CPU_DESCRIPTOR_HANDLE NFGE::Graphics::GraphicsSystem::GetCurrentRenderTarg
 D3D12_CPU_DESCRIPTOR_HANDLE NFGE::Graphics::GraphicsSystem::GetDepthStenciltView() const
 {
 	return mDSVHeap->GetCPUDescriptorHandleForHeapStart();
+}
+
+void NFGE::Graphics::GraphicsSystem::TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object)
+{
+	mTrackedObjects.push_back(object);
+}
+
+void NFGE::Graphics::GraphicsSystem::TrackResource(ID3D12Resource* res)
+{
+	TrackObject(res);
+}
+
+void NFGE::Graphics::GraphicsSystem::TrackResource(const Resource& res)
+{
+	TrackObject(res.GetD3D12Resource());
 }
 
 void NFGE::Graphics::GraphicsSystem::UpdateRenderTargetViews(Microsoft::WRL::ComPtr<ID3D12Device2> device, Microsoft::WRL::ComPtr<IDXGISwapChain4> swapChain, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap)

@@ -130,7 +130,7 @@ void NFGE::Graphics::ResourceStateTracker::AliasBarrier(ID3D12Resource* resource
     ResourceBarrier(CD3DX12_RESOURCE_BARRIER::Aliasing(resourceBefore, resourceAfter));
 }
 
-uint32_t NFGE::Graphics::ResourceStateTracker::FlushPendingResourceBarriers(CommandList& commandList)
+uint32_t NFGE::Graphics::ResourceStateTracker::FlushPendingResourceBarriers(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList)
 {
     ASSERT(sIsLocked, "ResoureStateTracker should be locked.");
 
@@ -185,8 +185,7 @@ uint32_t NFGE::Graphics::ResourceStateTracker::FlushPendingResourceBarriers(Comm
     UINT numBarriers = static_cast<UINT>(resourceBarriers.size());
     if (numBarriers > 0)
     {
-        auto d3d12CommandList = commandList.GetGraphicsCommandList();
-        d3d12CommandList->ResourceBarrier(numBarriers, resourceBarriers.data());
+        commandList->ResourceBarrier(numBarriers, resourceBarriers.data());
     }
 
     mPendingResourceBarriers.clear();
@@ -194,13 +193,12 @@ uint32_t NFGE::Graphics::ResourceStateTracker::FlushPendingResourceBarriers(Comm
     return numBarriers;
 }
 
-void NFGE::Graphics::ResourceStateTracker::FlushResourceBarriers(CommandList& commandList)
+void NFGE::Graphics::ResourceStateTracker::FlushResourceBarriers(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList)
 {
     UINT numBarriers = static_cast<UINT>(mResourceBarriers.size());
     if (numBarriers > 0)
     {
-        auto d3d12CommandList = commandList.GetGraphicsCommandList();
-        d3d12CommandList->ResourceBarrier(numBarriers, mResourceBarriers.data());
+        commandList->ResourceBarrier(numBarriers, mResourceBarriers.data());
         mResourceBarriers.clear();
     }
 }

@@ -21,6 +21,9 @@ namespace NFGE::Graphics {
 	};
 
 	class DescriptorAllocator;
+	class UploadBuffer;
+	class ResourceStateTracker;
+	class Resource;
 	class GraphicsSystem
 	{
 	public:
@@ -70,6 +73,23 @@ namespace NFGE::Graphics {
 
 		uint32_t GetBackBufferWidth() const;
 		uint32_t GetBackBufferHeight() const;
+
+	//private:
+		void TransitionBarrier(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateAfter, UINT subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool flushBarriers = false);
+		void TransitionBarrier(const Resource& resource, D3D12_RESOURCE_STATES stateAfter, UINT subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool flushBarriers = false);
+
+		void UAVBarrier(ID3D12Resource* resource, bool flushBarriers = false);
+		void UAVBarrier(const Resource& resource, bool flushBarriers = false);
+
+		void AliasingBarrier(ID3D12Resource* beforeResource, ID3D12Resource* afterResource, bool flushBarriers = false);
+		void AliasingBarrier(const Resource& beforeResource, const Resource& afterResource, bool flushBarriers = false);
+
+		void FlushResourceBarriers();
+
+		void CopyResource(ID3D12Resource* dstRes, ID3D12Resource* srcRes);
+		void CopyResource(Resource& dstRes, const Resource& srcRes);
+
+		void SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitiveTopology);
 	private:
 		
 		static const uint8_t sNumFrames = 3;
@@ -84,6 +104,8 @@ namespace NFGE::Graphics {
 		// Release stale descriptors. This should only be called with a completed frame counter.
 		friend void ReleaseStaleDescriptors(uint64_t finishedFrame);
 		friend UINT GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type);
+		
+		friend void TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object);
 
 		void UpdateRenderTargetViews(ComPtr<ID3D12Device2> device, ComPtr<IDXGISwapChain4> swapChain, ComPtr<ID3D12DescriptorHeap> descriptorHeap);
 		void UpdateDepthStencilView(ComPtr<ID3D12Device2> device, ComPtr<ID3D12DescriptorHeap> descriptorHeap);
@@ -91,6 +113,10 @@ namespace NFGE::Graphics {
 		ComPtr<ID3D12Resource> GetCurrentBackBuffer() const { return mBackBuffers[mCurrentBackBufferIndex]; };
 		D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRenderTargetView() const;
 		D3D12_CPU_DESCRIPTOR_HANDLE GetDepthStenciltView() const;
+
+		void TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object);
+		void TrackResource(ID3D12Resource* res);
+		void TrackResource(const Resource& res);
 
 		// Synchronization functions
 		void Flush();
@@ -113,6 +139,9 @@ namespace NFGE::Graphics {
 		UINT mRTVDescriptorSize{ 0 };
 		Microsoft::WRL::ComPtr<ID3D12Resource> mDepthBuffer;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDSVHeap;
+		// Resource created in an upload heap. Useful for drawing of dynamic geometry
+		// or for uploading constant buffer data that changes every draw call.
+		std::unique_ptr<UploadBuffer> mUploadBuffer;
 
 		std::unique_ptr<DescriptorAllocator> mDescriptorAllocators[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
@@ -130,6 +159,11 @@ namespace NFGE::Graphics {
 		bool mFullScreen{ false };
 		RECT mWindowRect{};
 		SIZE_T mMaxVideoMemory{ 0 };
+
+		
+		std::unique_ptr<ResourceStateTracker> mResourceStateTracker;
+		using TrackedObjects = std::vector < Microsoft::WRL::ComPtr<ID3D12Object> >;
+		TrackedObjects mTrackedObjects;
 	};
 
 } // namespace NFGE::Graphics
