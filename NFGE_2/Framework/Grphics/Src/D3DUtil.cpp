@@ -17,10 +17,11 @@ Microsoft::WRL::ComPtr<ID3D12Device2> NFGE::Graphics::GetDevice()
 NFGE::Graphics::CommandQueue* NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST_TYPE type)
 {
     CommandQueue* commandQueue = nullptr;
+    auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
     switch (type)
     {
     case D3D12_COMMAND_LIST_TYPE_DIRECT:
-        commandQueue = NFGE::Graphics::GraphicsSystem::Get()->mDirectCommandQueue.get();
+        commandQueue = graphicSystem->mDirectCommandQueue.get();
         break;
     case D3D12_COMMAND_LIST_TYPE_COMPUTE:
         commandQueue = NFGE::Graphics::GraphicsSystem::Get()->mComputeCommandQueue.get();
@@ -33,6 +34,7 @@ NFGE::Graphics::CommandQueue* NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST
     }
 
     ASSERT(commandQueue, "CommandQueue should not be nullptr.");
+    graphicSystem->mCurrentCommandList = commandQueue->GetCommandList();
     return commandQueue;
 }
 

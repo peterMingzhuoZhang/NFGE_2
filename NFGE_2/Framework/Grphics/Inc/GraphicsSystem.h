@@ -21,6 +21,7 @@ namespace NFGE::Graphics {
 	};
 
 	class DescriptorAllocator;
+	class DynamicDescriptorHeap;
 	class UploadBuffer;
 	class ResourceStateTracker;
 	class Resource;
@@ -90,6 +91,43 @@ namespace NFGE::Graphics {
 		void CopyResource(Resource& dstRes, const Resource& srcRes);
 
 		void SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitiveTopology);
+
+		void SetCompute32BitConstants(uint32_t rootParameterIndex, uint32_t numConstants, const void* constants);
+		template<typename T>
+		void SetCompute32BitConstants(uint32_t rootParameterIndex, const T& constants)
+		{
+			static_assert(sizeof(T) % sizeof(uint32_t) == 0, "Size of type must be a multiple of 4 bytes");
+			SetCompute32BitConstants(rootParameterIndex, sizeof(T) / sizeof(uint32_t), &constants);
+		}
+		void SetShaderResourceView(
+			uint32_t rootParameterIndex,
+			uint32_t descriptorOffset,
+			const Resource& resource,
+			D3D12_RESOURCE_STATES stateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+			D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+			UINT firstSubresource = 0,
+			UINT numSubresources = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+			const D3D12_SHADER_RESOURCE_VIEW_DESC* srv = nullptr
+		);
+		void SetUnorderedAccessView(
+			uint32_t rootParameterIndex,
+			uint32_t descrptorOffset,
+			const Resource&,
+			D3D12_RESOURCE_STATES stateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			UINT firstSubresource = 0,
+			UINT numSubresources = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+			const D3D12_UNORDERED_ACCESS_VIEW_DESC* uav = nullptr
+		);
+
+		// Draw geometry.
+		void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t startVertex = 0, uint32_t startInstance = 0);
+		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t startIndex = 0, int32_t baseVertex = 0, uint32_t startInstance = 0);
+
+		// Dispatch a compute shader.
+		void Dispatch(uint32_t numGroupsX, uint32_t numGroupsY = 1, uint32_t numGroupsZ = 1);
+
+		std::unique_ptr<DynamicDescriptorHeap> mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+		ID3D12DescriptorHeap* mDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 	private:
 		
 		static const uint8_t sNumFrames = 3;
@@ -144,6 +182,8 @@ namespace NFGE::Graphics {
 		std::unique_ptr<UploadBuffer> mUploadBuffer;
 
 		std::unique_ptr<DescriptorAllocator> mDescriptorAllocators[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+
+		
 
 		D3D12_VIEWPORT mViewport{};
 		D3D12_RECT mScissorRect{};

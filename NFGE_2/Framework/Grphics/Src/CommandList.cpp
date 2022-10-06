@@ -58,7 +58,7 @@ void NFGE::Graphics::CommandList::TransitionBarrier(ID3D12Resource* resource, D3
 
     if (flushBarriers)
     {
-        mResourceStateTracker->FlushResourceBarriers(*this);
+        //mResourceStateTracker->FlushResourceBarriers(*this);
     }
 }
 
@@ -107,7 +107,7 @@ void NFGE::Graphics::CommandList::AliasingBarrier(const Resource& beforeResource
 
 void CommandList::FlushResourceBarriers()
 {
-    mResourceStateTracker->FlushResourceBarriers(*this);
+    //mResourceStateTracker->FlushResourceBarriers(*this);
 }
 
 void CommandList::CopyResource(ID3D12Resource* dstRes, ID3D12Resource* srcRes)

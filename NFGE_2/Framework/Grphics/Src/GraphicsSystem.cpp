@@ -10,6 +10,7 @@
 #include "D3DUtil.h"
 #include "DescriptorAllocator.h"
 #include "DescriptorAllocatorPage.h"
+#include "DynamicDescriptorHeap.h"
 #include "Resource.h"
 #include "ResourceStateTracker.h"
 
@@ -467,6 +468,61 @@ void NFGE::Graphics::GraphicsSystem::CopyResource(Resource& dstRes, const Resour
 void NFGE::Graphics::GraphicsSystem::SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitiveTopology)
 {
 	mCurrentCommandList->IASetPrimitiveTopology(primitiveTopology);
+}
+
+void NFGE::Graphics::GraphicsSystem::SetCompute32BitConstants(uint32_t rootParameterIndex, uint32_t numConstants, const void* constants)
+{
+	mCurrentCommandList->SetGraphicsRoot32BitConstants(rootParameterIndex, numConstants, constants, 0);
+}
+
+void NFGE::Graphics::GraphicsSystem::SetShaderResourceView(uint32_t rootParameterIndex, uint32_t descriptorOffset, const Resource& resource, D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources, const D3D12_SHADER_RESOURCE_VIEW_DESC* srv)
+{
+	if (numSubresources < D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+	{
+		for (uint32_t i = 0; i < numSubresources; ++i)
+		{
+			TransitionBarrier(resource, stateAfter, firstSubresource + i);
+		}
+	}
+	else
+	{
+		TransitionBarrier(resource, stateAfter);
+	}
+
+	mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(rootParameterIndex, descriptorOffset, 1, resource.GetShaderResourceView(srv));
+
+	TrackResource(resource.GetD3D12Resource().Get());
+}
+
+void NFGE::Graphics::GraphicsSystem::SetUnorderedAccessView(uint32_t rootParameterIndex, uint32_t descrptorOffset, const Resource& resource, D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources, const D3D12_UNORDERED_ACCESS_VIEW_DESC* uav)
+{
+	if (numSubresources < D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+	{
+		for (uint32_t i = 0; i < numSubresources; ++i)
+		{
+			TransitionBarrier(resource, stateAfter, firstSubresource + i);
+		}
+	}
+	else
+	{
+		TransitionBarrier(resource, stateAfter);
+	}
+
+	mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(rootParameterIndex, descrptorOffset, 1, resource.GetUnorderedAccessView(uav));
+
+	TrackResource(resource.GetD3D12Resource().Get());
+}
+
+void NFGE::Graphics::GraphicsSystem::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertex, uint32_t startInstance)
+{
+	FlushResourceBarriers();
+
+	for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+	{
+		mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDraw(mCurrentCommandList.Get());
+	}
+
+	mCurrentCommandList->DrawInstanced(vertexCount, instanceCount, startVertex, startInstance);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE NFGE::Graphics::GraphicsSystem::GetCurrentRenderTargetView() const

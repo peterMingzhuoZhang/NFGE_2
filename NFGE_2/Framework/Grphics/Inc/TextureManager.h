@@ -11,6 +11,8 @@ namespace NFGE::Graphics
 {
 	using TextureId = size_t;
 
+	class GenerateMipsPSO;
+
 	class TextureManager
 	{
 	public:
@@ -34,5 +36,14 @@ namespace NFGE::Graphics
 	private:
 		std::filesystem::path mRootPath;
 		std::unordered_map<TextureId, std::unique_ptr<Texture>> mInventory;
+
+		// Pipeline objects for Mip map generation.
+		std::unique_ptr<GenerateMipsPSO> mGenerateMipsPSO;
+		ID3D12RootSignature* mRootSignature;
+
+		void GenerateMips(Texture& texture, ComPtr<ID3D12GraphicsCommandList2> commandList);
+		void GenerateMips_UAV(const Texture& texture, DXGI_FORMAT format, ComPtr<ID3D12GraphicsCommandList2> commandList);
+		void SetComputeRootSignature(const RootSignature& rootSignature, ComPtr<ID3D12GraphicsCommandList2> commandList);
+		
 	};
 }
