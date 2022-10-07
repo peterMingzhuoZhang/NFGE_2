@@ -665,7 +665,7 @@ void CommandList::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t st
 
     for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
     {
-        mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDraw(*this);
+        mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDraw();
     }
 
     mD3d12CommandList->DrawInstanced(vertexCount, instanceCount, startVertex, startInstance);
@@ -677,7 +677,7 @@ void CommandList::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint3
 
     for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
     {
-        mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDraw(*this);
+        mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDraw();
     }
 
     mD3d12CommandList->DrawIndexedInstanced(indexCount, instanceCount, startIndex, baseVertex, startInstance);
@@ -689,7 +689,7 @@ void CommandList::Dispatch(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t nu
 
     for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
     {
-        mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDispatch(*this);
+        mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDispatch();
     }
 
     mD3d12CommandList->Dispatch(numGroupsX, numGroupsY, numGroupsZ);

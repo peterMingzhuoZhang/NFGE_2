@@ -9,12 +9,14 @@
 #include "Mesh.h"
 #include "Light.h"
 #include "Camera.h"
+#include "TextureManager.h"
 
 namespace NFGE::Graphics
 {
-	class GeometryPNX
+	class GeometryPX
 	{
-		MeshPNX mMesh;
+	public:
+		MeshPX mMesh;
 		struct GeometryMeshRenderStrcuture {
 			// Vertex buffer
 			Microsoft::WRL::ComPtr<ID3D12Resource> vertexBuffer;
@@ -36,7 +38,7 @@ namespace NFGE::Graphics
 			// VertexShader --> pipeline state
 			// PixelShader --> pipeline state
 
-			// Textures
+			size_t mTexture_0;
 		} mMeshRenderStrcuture;
 
 		struct GeometryMeshContext {
@@ -53,7 +55,7 @@ namespace NFGE::Graphics
 		} mMeshContext;
 
 	public:
-		void Load(MeshPNX mesh, DirectionalLight* directionLight);
+		void Load(MeshPX mesh, DirectionalLight* directionLight);
 		void UnLoad();
 		void Update(float deltaTime);
 		void Render(const NFGE::Graphics::Camera& camera);

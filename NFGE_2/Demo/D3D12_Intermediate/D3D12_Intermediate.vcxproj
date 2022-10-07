@@ -140,6 +140,9 @@
     <ProjectReference Include="..\..\Framework\Grphics\Grphics.vcxproj">
       <Project>{0b0404c0-6fda-444d-b363-43a11eaddc16}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\Framework\NFGEMath\NFGEMath.vcxproj">
+      <Project>{0f59397e-de53-4770-bb5a-00ac3c81da90}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

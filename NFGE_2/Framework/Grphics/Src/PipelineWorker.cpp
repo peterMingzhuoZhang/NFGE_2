@@ -12,7 +12,7 @@
 
 using namespace NFGE::Graphics;
 
-void NFGE::Graphics::PipelineWork::Load(GeometryPNX& renderObject)
+void NFGE::Graphics::PipelineWork::Load(GeometryPX& renderObject)
 {
     auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
     ASSERT(graphicSystem, "GraphicsSystem is not initialized.");

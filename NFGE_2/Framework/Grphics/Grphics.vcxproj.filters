@@ -37,6 +37,9 @@
     <Filter Include="Src\Material">
       <UniqueIdentifier>{bf4f11c3-ba61-403c-bfdb-f543e2463be7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Src\Camera">
+      <UniqueIdentifier>{0c06e7af-b7ba-4c02-85fd-40d56ea4cd38}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Inc\Common.h">
@@ -205,6 +208,9 @@
     </ClCompile>
     <ClCompile Include="Src\TextureManager.cpp">
       <Filter>Src\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Camera.cpp">
+      <Filter>Src\Camera</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

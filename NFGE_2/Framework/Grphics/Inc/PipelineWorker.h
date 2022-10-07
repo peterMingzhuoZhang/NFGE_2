@@ -14,7 +14,7 @@ namespace NFGE::Graphics
 	class PipelineWork 
 	{
 	public:
-		void Load(GeometryPNX& renderObject);
+		void Load(GeometryPX& renderObject);
 	};
 
 	//comptr d3d12 rootSignature

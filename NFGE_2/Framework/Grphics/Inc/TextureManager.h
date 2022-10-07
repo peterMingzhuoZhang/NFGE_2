@@ -12,6 +12,7 @@ namespace NFGE::Graphics
 	using TextureId = size_t;
 
 	class GenerateMipsPSO;
+	class RootSignature;
 
 	class TextureManager
 	{
@@ -41,9 +42,10 @@ namespace NFGE::Graphics
 		std::unique_ptr<GenerateMipsPSO> mGenerateMipsPSO;
 		ID3D12RootSignature* mRootSignature;
 
-		void GenerateMips(Texture& texture, ComPtr<ID3D12GraphicsCommandList2> commandList);
-		void GenerateMips_UAV(const Texture& texture, DXGI_FORMAT format, ComPtr<ID3D12GraphicsCommandList2> commandList);
-		void SetComputeRootSignature(const RootSignature& rootSignature, ComPtr<ID3D12GraphicsCommandList2> commandList);
+		void GenerateMips(Texture& texture, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList);
+		void GenerateMips_UAV(const Texture& texture, DXGI_FORMAT format, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList);
+		void SetComputeRootSignature(const RootSignature& rootSignature, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList);
+		void LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage textureUsage, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandlist);
 		
 	};
 }

@@ -45,6 +45,9 @@ namespace NFGE::Graphics {
 
         void SetTextureUsage(TextureUsage textureUsage) { mTextureUsage = textureUsage; }
 
+        uint32_t GetWidth() const { return mWidth; }
+        uint32_t GetHeight() const { return mHeight; }
+
         /**
          * Resize the texture.
          */
@@ -125,6 +128,9 @@ namespace NFGE::Graphics {
         DescriptorAllocation mDepthStencilView;
 
         TextureUsage mTextureUsage;
+
+        uint32_t mWidth;
+        uint32_t mHeight;
     };
 }
 

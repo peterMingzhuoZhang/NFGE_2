@@ -2,8 +2,9 @@
 #include <Grphics/Inc/Graphics.h>
 #include <NFGE_2/Inc/NFGE_2.h>
 
-NFGE::Graphics::Geometry myBall;
 NFGE::Graphics::DirectionalLight myLight;
+NFGE::Graphics::Camera myCamera;
+NFGE::Graphics::GeometryPX myBall;
 
 void Load()
 {
@@ -12,7 +13,18 @@ void Load()
     myLight.diffuse = { 0.6f, 0.6f, 0.6f, 1.0f };
     myLight.specular = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-    
+    myCamera.SetDirection({ 0.0f,0.0f,1.0f });
+    myCamera.SetPosition(0.0f);
+
+    myBall.Load(NFGE::Graphics::MeshBuilder::CreateSpherePX(10, 10, 10), &myLight);
+    myBall.mMeshRenderStrcuture.mTexture_0 = NFGE::Graphics::TextureManager::Get()->LoadTexture("basketball.jpg", NFGE::Graphics::TextureUsage::Albedo, true);
+    myBall.mMeshContext.position = { 0.0f,0.0f, 5.0f };
+
+}
+
+void Render()
+{
+    myBall.Render(myCamera);
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
@@ -20,7 +32,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     NFGE::Core::Window myWindow;
     myWindow.Initialize(hInstance, "Hello Window", 1280, 720, false, NULL);
     NFGE::Graphics::GraphicsSystem::StaticInitialize(myWindow, true, false, 0);
+    std::filesystem::path assetsDirectory = L"../../Assets/Images";
+    NFGE::Graphics::TextureManager::StaticInitialize(assetsDirectory);
 
+    // Load
+    Load();
     
     bool done = false;
 
@@ -54,6 +70,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
                 elapsedSeconds = 0.0;
             }
         }
+
+        // Render
+        {
+            auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
+            graphicSystem->BeginRender(NFGE::Graphics::RenderType::Direct);
+            Render();
+            graphicSystem->EndRender(NFGE::Graphics::RenderType::Direct);
+        }
+        
     }
 
     NFGE::Graphics::GraphicsSystem::StaticTerminate();

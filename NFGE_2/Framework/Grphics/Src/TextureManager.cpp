@@ -15,6 +15,7 @@
 #include "GraphicsSystem.h"
 #include "GenerateMipsPSO.h"
 #include "DynamicDescriptorHeap.h"
+#include "RootSignature.h"
 using namespace NFGE::Graphics;
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -23,10 +24,7 @@ namespace
 {
 	std::unique_ptr<TextureManager> sInstance = nullptr;
 
-	void LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage textureUsage, ComPtr<ID3D12GraphicsCommandList2> commandlist);
-
     void CopyTextureSubresource(Texture& texture, uint32_t firstSubresource, uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData);
-   
 }
 
 void NFGE::Graphics::TextureManager::StaticInitialize(std::filesystem::path rootPath)
@@ -130,7 +128,7 @@ void NFGE::Graphics::TextureManager::GenerateMips(Texture& texture, ComPtr<ID3D1
 {
     auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
 
-    ASSERT(commandList.Get()->GetType() == D3D12_COMMAND_LIST_TYPE_COPY);
+    ASSERT(commandList.Get()->GetType() == D3D12_COMMAND_LIST_TYPE_COPY, "[TextureManager] require a copy type commandList");
 
     auto d3d12Resource = texture.GetD3D12Resource();
 
@@ -332,9 +330,9 @@ void NFGE::Graphics::TextureManager::GenerateMips_UAV(const Texture& texture, DX
             graphicSystem->mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(GenerateMips::OutMip, mipCount, 4 - mipCount, mGenerateMipsPSO->GetDefaultUAV());
         }
 
-        Dispatch(NFGE::Math::Memory::DivideByMultiple(dstWidth, 8), NFGE::Math::Memory::DivideByMultiple(dstHeight, 8));
+        graphicSystem->Dispatch(NFGE::Math::Memory::DivideByMultiple(dstWidth, 8), NFGE::Math::Memory::DivideByMultiple(dstHeight, 8));
 
-        UAVBarrier(texture);
+        graphicSystem->UAVBarrier(texture);
 
         srcMip += mipCount;
     }
@@ -359,91 +357,91 @@ void NFGE::Graphics::TextureManager::SetComputeRootSignature(const RootSignature
     }
 }
 
-namespace // Internal linkage function defination
+void NFGE::Graphics::TextureManager::LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage textureUsage, ComPtr<ID3D12GraphicsCommandList2> commandlist)
 {
-    void LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage textureUsage, ComPtr<ID3D12GraphicsCommandList2> commandlist)
+    auto device = NFGE::Graphics::GetDevice();
+
+    TexMetadata metadata;
+    ScratchImage scratchImage;
+    Microsoft::WRL::ComPtr<ID3D12Resource> textureResource;
+
+    std::filesystem::path filePath(fileName);
+    if (filePath.extension() == ".dds")
     {
-        auto device = NFGE::Graphics::GetDevice();
-
-        TexMetadata metadata;
-        ScratchImage scratchImage;
-        Microsoft::WRL::ComPtr<ID3D12Resource> textureResource;
-
-        std::filesystem::path filePath(fileName);
-        if (filePath.extension() == ".dds")
-        {
-            // Use DDS texture loader.
-            ThrowIfFailed(LoadFromDDSFile(fileName.c_str(), DDS_FLAGS_NONE, &metadata, scratchImage));
-        }
-        else if (filePath.extension() == ".hdr")
-        {
-            ThrowIfFailed(LoadFromHDRFile(fileName.c_str(), &metadata, scratchImage));
-        }
-        else if (filePath.extension() == ".tga")
-        {
-            ThrowIfFailed(LoadFromTGAFile(fileName.c_str(), &metadata, scratchImage));
-        }
-        else
-        {
-            ThrowIfFailed(LoadFromWICFile(fileName.c_str(), WIC_FLAGS_NONE, &metadata, scratchImage));
-        }
-
-        if (textureUsage == TextureUsage::Albedo)
-        {
-            metadata.format = MakeSRGB(metadata.format);
-        }
-
-        D3D12_RESOURCE_DESC textureDesc = {};
-        switch (metadata.dimension)
-        {
-        case TEX_DIMENSION_TEXTURE1D:
-            textureDesc = CD3DX12_RESOURCE_DESC::Tex1D(metadata.format, static_cast<UINT64>(metadata.width), static_cast<UINT16>(metadata.arraySize));
-            break;
-        case TEX_DIMENSION_TEXTURE2D:
-            textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(metadata.format, static_cast<UINT64>(metadata.width), static_cast<UINT>(metadata.height), static_cast<UINT16>(metadata.arraySize));
-            break;
-        case TEX_DIMENSION_TEXTURE3D:
-            textureDesc = CD3DX12_RESOURCE_DESC::Tex3D(metadata.format, static_cast<UINT64>(metadata.width), static_cast<UINT>(metadata.height), static_cast<UINT16>(metadata.depth));
-            break;
-        default:
-            throw std::exception("Invalid texture dimension.");
-            break;
-        }
-
-        auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-        ThrowIfFailed(device->CreateCommittedResource(&heapProperties,
-            D3D12_HEAP_FLAG_NONE,
-            &textureDesc,
-            D3D12_RESOURCE_STATE_COMMON,
-            nullptr,
-            IID_PPV_ARGS(&textureResource)));
-
-        // Update the global state tracker.
-        ResourceStateTracker::AddGlobalResourceState(textureResource.Get(), D3D12_RESOURCE_STATE_COMMON);
-
-        texture.SetTextureUsage(textureUsage);
-        texture.SetD3D12Resource(textureResource);
-        texture.CreateViews();
-        texture.SetName(fileName);
-
-        std::vector<D3D12_SUBRESOURCE_DATA> subresources(scratchImage.GetImageCount());
-        const Image* pImages = scratchImage.GetImages();
-        for (int i = 0; i < scratchImage.GetImageCount(); ++i)
-        {
-            auto& subresource = subresources[i];
-            subresource.RowPitch = pImages[i].rowPitch;
-            subresource.SlicePitch = pImages[i].slicePitch;
-            subresource.pData = pImages[i].pixels;
-        }
-
-        CopyTextureSubresource(texture, 0, static_cast<uint32_t>(subresources.size()), subresources.data());
-
-        if (subresources.size() < textureResource->GetDesc().MipLevels)
-        {
-            GenerateMips(texture, commandlist);
-        }
+        // Use DDS texture loader.
+        ThrowIfFailed(LoadFromDDSFile(fileName.c_str(), DDS_FLAGS_NONE, &metadata, scratchImage));
+    }
+    else if (filePath.extension() == ".hdr")
+    {
+        ThrowIfFailed(LoadFromHDRFile(fileName.c_str(), &metadata, scratchImage));
+    }
+    else if (filePath.extension() == ".tga")
+    {
+        ThrowIfFailed(LoadFromTGAFile(fileName.c_str(), &metadata, scratchImage));
+    }
+    else
+    {
+        ThrowIfFailed(LoadFromWICFile(fileName.c_str(), WIC_FLAGS_NONE, &metadata, scratchImage));
     }
 
+    if (textureUsage == TextureUsage::Albedo)
+    {
+        metadata.format = MakeSRGB(metadata.format);
+    }
+
+    D3D12_RESOURCE_DESC textureDesc = {};
+    switch (metadata.dimension)
+    {
+    case TEX_DIMENSION_TEXTURE1D:
+        textureDesc = CD3DX12_RESOURCE_DESC::Tex1D(metadata.format, static_cast<UINT64>(metadata.width), static_cast<UINT16>(metadata.arraySize));
+        break;
+    case TEX_DIMENSION_TEXTURE2D:
+        textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(metadata.format, static_cast<UINT64>(metadata.width), static_cast<UINT>(metadata.height), static_cast<UINT16>(metadata.arraySize));
+        break;
+    case TEX_DIMENSION_TEXTURE3D:
+        textureDesc = CD3DX12_RESOURCE_DESC::Tex3D(metadata.format, static_cast<UINT64>(metadata.width), static_cast<UINT>(metadata.height), static_cast<UINT16>(metadata.depth));
+        break;
+    default:
+        throw std::exception("Invalid texture dimension.");
+        break;
+    }
+
+    auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+    ThrowIfFailed(device->CreateCommittedResource(&heapProperties,
+        D3D12_HEAP_FLAG_NONE,
+        &textureDesc,
+        D3D12_RESOURCE_STATE_COMMON,
+        nullptr,
+        IID_PPV_ARGS(&textureResource)));
+
+    // Update the global state tracker.
+    ResourceStateTracker::AddGlobalResourceState(textureResource.Get(), D3D12_RESOURCE_STATE_COMMON);
+
+    texture.SetTextureUsage(textureUsage);
+    texture.SetD3D12Resource(textureResource);
+    texture.CreateViews();
+    texture.SetName(fileName);
+
+    std::vector<D3D12_SUBRESOURCE_DATA> subresources(scratchImage.GetImageCount());
+    const Image* pImages = scratchImage.GetImages();
+    for (int i = 0; i < scratchImage.GetImageCount(); ++i)
+    {
+        auto& subresource = subresources[i];
+        subresource.RowPitch = pImages[i].rowPitch;
+        subresource.SlicePitch = pImages[i].slicePitch;
+        subresource.pData = pImages[i].pixels;
+    }
+
+    CopyTextureSubresource(texture, 0, static_cast<uint32_t>(subresources.size()), subresources.data());
+
+    if (subresources.size() < textureResource->GetDesc().MipLevels)
+    {
+        GenerateMips(texture, commandlist);
+    }
+}
+
+namespace // Internal linkage function defination
+{
     void CopyTextureSubresource(Texture& texture, uint32_t firstSubresource, uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData)
     {
         auto device = NFGE::Graphics::GetDevice();

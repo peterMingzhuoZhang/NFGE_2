@@ -9,6 +9,7 @@
 #include "DynamicDescriptorHeap.h"
 #include "D3DUtil.h"
 
+#include "GraphicsSystem.h"
 #include "CommandList.h"
 #include "RootSignature.h"
 
@@ -62,15 +63,17 @@ void NFGE::Graphics::DynamicDescriptorHeap::StageDescriptors(uint32_t rootParame
 	mStaleDescriptorTableBitMask |= (1 << rootParameterIndex);
 }
 
-void NFGE::Graphics::DynamicDescriptorHeap::CommitStagedDescriptors(CommandList& commandList, std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_DESCRIPTOR_HANDLE)> setFunc)
+void NFGE::Graphics::DynamicDescriptorHeap::CommitStagedDescriptors(std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_DESCRIPTOR_HANDLE)> setFunc)
 {
+	auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
+
 	// Compute the number of descriptors that need to be copied 
 	uint32_t numDescriptorsToCommit = ComputeStaleDescriptorCount();
 
 	if (numDescriptorsToCommit > 0)
 	{
 		auto device = NFGE::Graphics::GetDevice();
-		auto d3d12GraphicsCommandList = commandList.GetGraphicsCommandList().Get();
+		auto d3d12GraphicsCommandList = graphicSystem->GetCurrentCommandList().Get();
 		assert(d3d12GraphicsCommandList != nullptr);
 
 		if (!mCurrentDescriptorHeap || mNumFreeHandles < numDescriptorsToCommit)
@@ -80,7 +83,7 @@ void NFGE::Graphics::DynamicDescriptorHeap::CommitStagedDescriptors(CommandList&
 			mCurrentGPUDescriptorHandle = mCurrentDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
 			mNumFreeHandles = mNumDescriptorsPerHeap;
 
-			commandList.SetDescriptorHeap(mDescriptorHeapType, mCurrentDescriptorHeap.Get());
+			graphicSystem->SetDescriptorHeap(mDescriptorHeapType, mCurrentDescriptorHeap.Get());
 
 			// When updating the descriptor heap on the command list, all descriptor
 			// tables must be (re)recopied to the new descriptor heap (not just
@@ -116,17 +119,17 @@ void NFGE::Graphics::DynamicDescriptorHeap::CommitStagedDescriptors(CommandList&
 	}
 }
 
-void NFGE::Graphics::DynamicDescriptorHeap::CommitStagedDescriptorsForDraw(CommandList& commandList)
+void NFGE::Graphics::DynamicDescriptorHeap::CommitStagedDescriptorsForDraw()
 {
-	CommitStagedDescriptors(commandList, &ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
+	CommitStagedDescriptors(&ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
 }
 
-void NFGE::Graphics::DynamicDescriptorHeap::CommitStagedDescriptorsForDispatch(CommandList& commandList)
+void NFGE::Graphics::DynamicDescriptorHeap::CommitStagedDescriptorsForDispatch()
 {
-	CommitStagedDescriptors(commandList, &ID3D12GraphicsCommandList::SetComputeRootDescriptorTable);
+	CommitStagedDescriptors(&ID3D12GraphicsCommandList::SetComputeRootDescriptorTable);
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE NFGE::Graphics::DynamicDescriptorHeap::CopyDescriptor(CommandList& comandList, D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptor)
+D3D12_GPU_DESCRIPTOR_HANDLE NFGE::Graphics::DynamicDescriptorHeap::CopyDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptor)
 {
 	if (!mCurrentDescriptorHeap || mNumFreeHandles < 1)
 	{
@@ -135,7 +138,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE NFGE::Graphics::DynamicDescriptorHeap::CopyDescripto
 		mCurrentGPUDescriptorHandle = mCurrentDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
 		mNumFreeHandles = mNumDescriptorsPerHeap;
 
-		comandList.SetDescriptorHeap(mDescriptorHeapType, mCurrentDescriptorHeap.Get());
+		NFGE::Graphics::GraphicsSystem::Get()->SetDescriptorHeap(mDescriptorHeapType, mCurrentDescriptorHeap.Get());
 
 		// When updating the descriptor heap on the command list, all descriptor
 		// tables must be (re)recopied to the new descriptor heap (not just

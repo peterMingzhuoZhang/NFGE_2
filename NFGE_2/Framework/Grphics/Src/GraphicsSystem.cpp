@@ -13,6 +13,7 @@
 #include "DynamicDescriptorHeap.h"
 #include "Resource.h"
 #include "ResourceStateTracker.h"
+#include "UploadBuffer.h"
 
 using namespace NFGE;
 using namespace NFGE::Graphics;
@@ -519,10 +520,55 @@ void NFGE::Graphics::GraphicsSystem::Draw(uint32_t vertexCount, uint32_t instanc
 
 	for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 	{
-		mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDraw(mCurrentCommandList.Get());
+		mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDraw();
 	}
 
 	mCurrentCommandList->DrawInstanced(vertexCount, instanceCount, startVertex, startInstance);
+}
+
+void NFGE::Graphics::GraphicsSystem::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex, int32_t baseVertex, uint32_t startInstance)
+{
+	FlushResourceBarriers();
+
+	for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+	{
+		mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDraw();
+	}
+
+	mCurrentCommandList->DrawIndexedInstanced(indexCount, instanceCount, startIndex, baseVertex, startInstance);
+}
+
+void NFGE::Graphics::GraphicsSystem::Dispatch(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ)
+{
+	FlushResourceBarriers();
+
+	for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+	{
+		mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDispatch();
+	}
+
+	mCurrentCommandList->Dispatch(numGroupsX, numGroupsY, numGroupsZ);
+}
+
+void NFGE::Graphics::GraphicsSystem::SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, ID3D12DescriptorHeap* heap)
+{
+	if (mDescriptorHeaps[heapType] != heap)
+	{
+		mDescriptorHeaps[heapType] = heap;
+		UINT numDescriptorHeaps = 0;
+		ID3D12DescriptorHeap* descriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = {};
+
+		for (uint32_t i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+		{
+			ID3D12DescriptorHeap* descriptorHeap = mDescriptorHeaps[i];
+			if (descriptorHeap)
+			{
+				descriptorHeaps[numDescriptorHeaps++] = descriptorHeap;
+			}
+		}
+
+		mCurrentCommandList->SetDescriptorHeaps(numDescriptorHeaps, descriptorHeaps);
+	}
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE NFGE::Graphics::GraphicsSystem::GetCurrentRenderTargetView() const

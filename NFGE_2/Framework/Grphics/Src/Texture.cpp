@@ -176,6 +176,8 @@ void Texture::CreateViews()
             mDepthStencilView = NFGE::Graphics::AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
             device->CreateDepthStencilView(mD3d12Resource.Get(), nullptr, mDepthStencilView.GetDescriptorHandle());
         }
+
+        
     }
 
     std::lock_guard<std::mutex> lock(mShaderResourceViewsMutex);
