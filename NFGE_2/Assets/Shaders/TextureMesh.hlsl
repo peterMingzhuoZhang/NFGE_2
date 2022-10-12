@@ -4,7 +4,7 @@
 // Description:	Simple shader for applying diffuse texture to TextureMesh.
 //====================================================================================================
 
-cbuffer ConstantBuffer : register(b0)
+cbuffer WVP : register(b0)
 {
 	matrix World;
 	matrix View;

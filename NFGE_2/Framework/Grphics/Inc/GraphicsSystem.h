@@ -9,6 +9,7 @@
 #include "Colors.h"
 #include "CommandQueue.h"
 #include "DescriptorAllocation.h"
+#include "DynamicDescriptorHeap.h" // TODO:: remove this dependicy 
 
 namespace NFGE::Graphics {
 	using namespace Microsoft::WRL;
@@ -25,6 +26,7 @@ namespace NFGE::Graphics {
 	class UploadBuffer;
 	class ResourceStateTracker;
 	class Resource;
+	class RootSignature;
 	class GraphicsSystem
 	{
 	public:
@@ -90,6 +92,9 @@ namespace NFGE::Graphics {
 		void CopyResource(ID3D12Resource* dstRes, ID3D12Resource* srcRes);
 		void CopyResource(Resource& dstRes, const Resource& srcRes);
 
+		void SetGraphicsRootSignature(const RootSignature& rootSignature);
+		void SetComputeRootSignature(const RootSignature& rootSignature);
+
 		void SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitiveTopology);
 
 		void SetCompute32BitConstants(uint32_t rootParameterIndex, uint32_t numConstants, const void* constants);
@@ -128,9 +133,20 @@ namespace NFGE::Graphics {
 		void Dispatch(uint32_t numGroupsX, uint32_t numGroupsY = 1, uint32_t numGroupsZ = 1);
 
 		void SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, ID3D12DescriptorHeap* heap);
-
-		std::unique_ptr<DynamicDescriptorHeap> mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
-		ID3D12DescriptorHeap* mDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+		
+		struct DynamicDescriptorHeapKit
+		{
+			std::unique_ptr<DynamicDescriptorHeap> mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+			ID3D12DescriptorHeap* mDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+			DynamicDescriptorHeapKit() {
+				for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+				{
+					mDynamicDescriptorHeap[i] = std::make_unique<DynamicDescriptorHeap>(static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(i));
+					mDescriptorHeaps[i] = nullptr;
+				}
+			}
+		};
+		std::vector<DynamicDescriptorHeapKit> mDynamicDescriptorHeapKits;
 	private:
 		
 		static const uint8_t sNumFrames = 3;
@@ -166,6 +182,7 @@ namespace NFGE::Graphics {
 		// Allocation and Control
 		ComPtr<ID3D12Device2> mDevice{ nullptr };
 		ComPtr<ID3D12GraphicsCommandList2> mCurrentCommandList{ nullptr };
+		ID3D12RootSignature* mCurrentRootSignature;
 		std::unique_ptr<CommandQueue> mDirectCommandQueue{ nullptr };
 		std::unique_ptr<CommandQueue> mComputeCommandQueue{ nullptr };
 		std::unique_ptr<CommandQueue> mCopyCommandQueue{ nullptr };

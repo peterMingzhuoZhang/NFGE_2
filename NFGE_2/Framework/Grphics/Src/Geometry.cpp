@@ -32,18 +32,18 @@ void NFGE::Graphics::GeometryPX::Load(MeshPX mesh, DirectionalLight* directionLi
 		vertices.size(), sizeof(VertexPX), vertices.data());
 	// Create the vertex buffer view.
 	mMeshRenderStrcuture.vertexBufferView.BufferLocation = mMeshRenderStrcuture.vertexBuffer->GetGPUVirtualAddress();
-	mMeshRenderStrcuture.vertexBufferView.SizeInBytes = vertices.size();
+	mMeshRenderStrcuture.vertexBufferView.SizeInBytes = vertices.size() * sizeof(VertexPX);
 	mMeshRenderStrcuture.vertexBufferView.StrideInBytes = sizeof(VertexPX);
 	// Upload index buffer data.
 	ComPtr<ID3D12Resource> intermediateIndexBuffer;
 	auto& indices = mMesh.GetIndices();
 	NFGE::Graphics::GraphicsSystem::UpdateBufferResource(commandList.Get(),
 		&mMeshRenderStrcuture.indexBuffer, &intermediateIndexBuffer,
-		indices.size(), sizeof(WORD), indices.data());
+		indices.size(), sizeof(uint16_t), indices.data());
 	// Create index buffer view.
 	mMeshRenderStrcuture.indexBufferView.BufferLocation = mMeshRenderStrcuture.indexBuffer->GetGPUVirtualAddress();
 	mMeshRenderStrcuture.indexBufferView.Format = DXGI_FORMAT_R16_UINT;
-	mMeshRenderStrcuture.indexBufferView.SizeInBytes = indices.size();
+	mMeshRenderStrcuture.indexBufferView.SizeInBytes = indices.size() * 2;
 
 	auto fenceValue = commandQueue->ExecuteCommandList(commandList);
 	commandQueue->WaitForFenceValue(fenceValue);
@@ -88,26 +88,29 @@ void NFGE::Graphics::GeometryPX::Load(MeshPX mesh, DirectionalLight* directionLi
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
 	// A single 32-bit constant root parameter that is used by the vertex shader.
 	CD3DX12_ROOT_PARAMETER1 rootParameters[2];
 	rootParameters[0].InitAsConstants(sizeof(NFGE::Math::Matrix4) * 3 / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
 	CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 	rootParameters[1].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
+	
+	CD3DX12_STATIC_SAMPLER_DESC linearRepeatSampler(0, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR);
 
 	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-	rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
+	rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 1, &linearRepeatSampler, rootSignatureFlags);
 
-	// Serialize the root signature.
-	ComPtr<ID3DBlob> rootSignatureBlob;
-	ComPtr<ID3DBlob> errorBlob;
-	ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&rootSignatureDescription,
-		featureData.HighestVersion, &rootSignatureBlob, &errorBlob));
-	// Create the root signature.
-	ThrowIfFailed(device->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(),
-		rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&mMeshRenderStrcuture.rootSignature)));
+	//// Serialize the root signature.
+	//ComPtr<ID3DBlob> rootSignatureBlob;
+	//ComPtr<ID3DBlob> errorBlob;
+	//ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&rootSignatureDescription,
+	//	featureData.HighestVersion, &rootSignatureBlob, &errorBlob));
+	//// Create the root signature.
+	//ThrowIfFailed(device->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(),
+	//	rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&mMeshRenderStrcuture.rootSignature)));
+
+	mMeshRenderStrcuture.rootSignature.SetRootSignatureDesc(rootSignatureDescription.Desc_1_1, featureData.HighestVersion);
 
 	struct PipelineStateStream
 	{
@@ -124,7 +127,7 @@ void NFGE::Graphics::GeometryPX::Load(MeshPX mesh, DirectionalLight* directionLi
 	rtvFormats.NumRenderTargets = 1;
 	rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-	pipelineStateStream.pRootSignature = mMeshRenderStrcuture.rootSignature.Get();
+	pipelineStateStream.pRootSignature = mMeshRenderStrcuture.rootSignature.GetRootSignature().Get();
 	pipelineStateStream.InputLayout = { vertexLayout.data(), static_cast<UINT>(vertexLayout.size()) };
 	pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vertexShaderBlob.Get());
@@ -153,8 +156,10 @@ void NFGE::Graphics::GeometryPX::Render(const NFGE::Graphics::Camera& camera)
 	auto commandList = graphicSystem->GetCurrentCommandList();
 
 	commandList->SetPipelineState(mMeshRenderStrcuture.pipelineState.Get());
-	commandList->SetGraphicsRootSignature(mMeshRenderStrcuture.rootSignature.Get());
-	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	//commandList->SetGraphicsRootSignature(mMeshRenderStrcuture.rootSignature.Get());
+	graphicSystem->SetGraphicsRootSignature(mMeshRenderStrcuture.rootSignature);
+	//commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	graphicSystem->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	commandList->IASetVertexBuffers(0, 1, & mMeshRenderStrcuture.vertexBufferView);
 	commandList->IASetIndexBuffer(&mMeshRenderStrcuture.indexBufferView);
 

@@ -73,7 +73,7 @@ TextureId NFGE::Graphics::TextureManager::LoadTexture(std::filesystem::path file
 	auto [iter, success] = mInventory.insert({ hash, nullptr });
 	if (success)
 	{
-        auto commandList = NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COPY)->GetCommandList();
+        auto commandList = NFGE::Graphics::GetCommandList(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE);;
 		iter->second = std::make_unique<Texture>();
         if (isUsingRootPath)
             LoadTextureFromFile(*iter->second, mRootPath / filename, textureUsage, commandList);
@@ -128,7 +128,7 @@ void NFGE::Graphics::TextureManager::GenerateMips(Texture& texture, ComPtr<ID3D1
 {
     auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
 
-    ASSERT(commandList.Get()->GetType() == D3D12_COMMAND_LIST_TYPE_COPY, "[TextureManager] require a copy type commandList");
+    ASSERT(commandList.Get()->GetType() != D3D12_COMMAND_LIST_TYPE_COPY, "[TextureManager] require a non-copy type commandList");
 
     auto d3d12Resource = texture.GetD3D12Resource();
 
@@ -256,7 +256,7 @@ void NFGE::Graphics::TextureManager::GenerateMips_UAV(const Texture& texture, DX
     }
 
     commandList->SetPipelineState(mGenerateMipsPSO->GetPipelineState().Get());
-    SetComputeRootSignature(mGenerateMipsPSO->GetRootSignature(), commandList);
+    graphicSystem->SetComputeRootSignature(mGenerateMipsPSO->GetRootSignature());
 
     GenerateMipsCB generateMipsCB;
     generateMipsCB.IsSRGB = Texture::IsSRGBFormat(format);
@@ -327,7 +327,7 @@ void NFGE::Graphics::TextureManager::GenerateMips_UAV(const Texture& texture, DX
         // Pad any unused mip levels with a default UAV. Doing this keeps the DX12 runtime happy.
         if (mipCount < 4)
         {
-            graphicSystem->mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(GenerateMips::OutMip, mipCount, 4 - mipCount, mGenerateMipsPSO->GetDefaultUAV());
+            graphicSystem->mDynamicDescriptorHeapKits[commandList->GetType()].mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(GenerateMips::OutMip, mipCount, 4 - mipCount, mGenerateMipsPSO->GetDefaultUAV());
         }
 
         graphicSystem->Dispatch(NFGE::Math::Memory::DivideByMultiple(dstWidth, 8), NFGE::Math::Memory::DivideByMultiple(dstHeight, 8));
@@ -335,25 +335,6 @@ void NFGE::Graphics::TextureManager::GenerateMips_UAV(const Texture& texture, DX
         graphicSystem->UAVBarrier(texture);
 
         srcMip += mipCount;
-    }
-}
-
-void NFGE::Graphics::TextureManager::SetComputeRootSignature(const RootSignature& rootSignature, ComPtr<ID3D12GraphicsCommandList2> commandList)
-{
-    auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
-    auto d3d12RootSignature = rootSignature.GetRootSignature().Get();
-    if (mRootSignature != d3d12RootSignature)
-    {
-        mRootSignature = d3d12RootSignature;
-
-        for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
-        {
-            graphicSystem->mDynamicDescriptorHeap[i]->ParseRootSignature(rootSignature);
-        }
-
-        commandList->SetComputeRootSignature(mRootSignature);
-
-        TrackObject(mRootSignature);
     }
 }
 

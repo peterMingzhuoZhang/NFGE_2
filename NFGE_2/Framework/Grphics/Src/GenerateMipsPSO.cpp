@@ -57,8 +57,21 @@ GenerateMipsPSO::GenerateMipsPSO()
         CD3DX12_PIPELINE_STATE_STREAM_CS CS;
     } pipelineStateStream;
 
+    // Load and compile the compute shader.
+    ID3DBlob* computeShaderBlob = nullptr;
+    ID3DBlob* shaderErrorBlob = nullptr;
+    HRESULT hr = D3DCompileFromFile(
+        L"../../Assets/Shaders/GenerateMips_CS.hlsl",
+        nullptr, nullptr,
+        "main",
+        "cs_5_1", 0, 0, // which compiler
+        &computeShaderBlob,	//
+        &shaderErrorBlob);
+    ASSERT(SUCCEEDED(hr), "Failed to compile compute shader. Error: %s", (const char*)shaderErrorBlob->GetBufferPointer());
+    SafeRelease(shaderErrorBlob);
+
     pipelineStateStream.pRootSignature = mRootSignature.GetRootSignature().Get();
-    //pipelineStateStream.CS = { g_GenerateMips_CS, sizeof(g_GenerateMips_CS) }; //TODO:: Get shader compiled and load in here
+    pipelineStateStream.CS = CD3DX12_SHADER_BYTECODE(computeShaderBlob);
 
     D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
         sizeof(PipelineStateStream), &pipelineStateStream

@@ -24,10 +24,10 @@ NFGE::Graphics::CommandQueue* NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST
         commandQueue = graphicSystem->mDirectCommandQueue.get();
         break;
     case D3D12_COMMAND_LIST_TYPE_COMPUTE:
-        commandQueue = NFGE::Graphics::GraphicsSystem::Get()->mComputeCommandQueue.get();
+        commandQueue = graphicSystem->mComputeCommandQueue.get();
         break;
     case D3D12_COMMAND_LIST_TYPE_COPY:
-        commandQueue = NFGE::Graphics::GraphicsSystem::Get()->mCopyCommandQueue.get();
+        commandQueue = graphicSystem->mCopyCommandQueue.get();
         break;
     default:
         ASSERT(false, "Invalid command queue type.");
@@ -36,6 +36,12 @@ NFGE::Graphics::CommandQueue* NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST
     ASSERT(commandQueue, "CommandQueue should not be nullptr.");
     graphicSystem->mCurrentCommandList = commandQueue->GetCommandList();
     return commandQueue;
+}
+
+Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> NFGE::Graphics::GetCommandList(D3D12_COMMAND_LIST_TYPE type)
+{
+    auto commandQueue = GetCommandQueue(type);
+    return NFGE::Graphics::GraphicsSystem::Get()->GetCurrentCommandList();
 }
 
 uint8_t  NFGE::Graphics::GetFrameCount()

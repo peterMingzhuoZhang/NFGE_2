@@ -55,14 +55,14 @@ namespace NFGE::Graphics
 		}
 
 		const std::vector<VertexType>& GetVertices() const { return mVertices; }
-		const std::vector<uint32_t>& GetIndices() const { return mIndices; }
+		const std::vector<uint16_t>& GetIndices() const { return mIndices; }
 		uint32_t GetVertexCount() const { return mNumVertices; }
 		uint32_t GetIndexCount() const { return mNumIndices; }
 
 
 	public:
 		std::vector<VertexType> mVertices;
-		std::vector<uint32_t> mIndices;
+		std::vector<uint16_t> mIndices;
 
 		uint32_t mNumVertices{ 0 };
 		uint32_t mNumIndices{ 0 };

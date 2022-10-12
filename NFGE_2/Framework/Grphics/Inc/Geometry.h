@@ -9,6 +9,7 @@
 #include "Mesh.h"
 #include "Light.h"
 #include "Camera.h"
+#include "RootSignature.h"
 #include "TextureManager.h"
 
 namespace NFGE::Graphics
@@ -25,7 +26,7 @@ namespace NFGE::Graphics
 			Microsoft::WRL::ComPtr<ID3D12Resource> indexBuffer;
 			D3D12_INDEX_BUFFER_VIEW indexBufferView;
 
-			Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature; // PipelineWorker
+			RootSignature rootSignature; // PipelineWorker
 
 			Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState; // PipelineWorker
 

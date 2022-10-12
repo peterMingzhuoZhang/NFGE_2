@@ -14,6 +14,7 @@
 #include "Resource.h"
 #include "ResourceStateTracker.h"
 #include "UploadBuffer.h"
+#include "RootSignature.h"
 
 using namespace NFGE;
 using namespace NFGE::Graphics;
@@ -210,6 +211,23 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 
 	// Hook application to windows procedure
 	sWindowMessageHandler.Hook(windowHandle, GraphicsSystemMessageHandler);
+
+	mResourceStateTracker = std::make_unique<ResourceStateTracker>();
+
+	// Create descriptor allocators
+	for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+	{
+		mDescriptorAllocators[i] = std::make_unique<DescriptorAllocator>(static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(i));
+	}
+
+	mUploadBuffer = std::make_unique<UploadBuffer>();
+
+	mDynamicDescriptorHeapKits.reserve(D3D12_COMMAND_LIST_TYPE_VIDEO_ENCODE);
+	for (size_t i = 0; i < D3D12_COMMAND_LIST_TYPE_VIDEO_ENCODE; i++) 
+	{
+		mDynamicDescriptorHeapKits.emplace_back();
+	}
+	
 }
 
 void GraphicsSystem::Terminate()
@@ -466,6 +484,42 @@ void NFGE::Graphics::GraphicsSystem::CopyResource(Resource& dstRes, const Resour
 	CopyResource(d3d12ResourceDst.Get(), d3d12ResourceSrc.Get());
 }
 
+void NFGE::Graphics::GraphicsSystem::SetGraphicsRootSignature(const RootSignature& rootSignature)
+{
+	auto d3d12RootSignature = rootSignature.GetRootSignature().Get();
+	if (mCurrentRootSignature != d3d12RootSignature)
+	{
+		mCurrentRootSignature = d3d12RootSignature;
+
+		for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+		{
+			mDynamicDescriptorHeapKits[mCurrentCommandList->GetType()].mDynamicDescriptorHeap[i]->ParseRootSignature(rootSignature);
+		}
+
+		mCurrentCommandList->SetGraphicsRootSignature(mCurrentRootSignature);
+
+		TrackObject(mCurrentRootSignature);
+	}
+}
+
+void NFGE::Graphics::GraphicsSystem::SetComputeRootSignature(const RootSignature& rootSignature)
+{
+	auto d3d12RootSignature = rootSignature.GetRootSignature().Get();
+	if (mCurrentRootSignature != d3d12RootSignature)
+	{
+		mCurrentRootSignature = d3d12RootSignature;
+
+		for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+		{
+			mDynamicDescriptorHeapKits[mCurrentCommandList->GetType()].mDynamicDescriptorHeap[i]->ParseRootSignature(rootSignature);
+		}
+
+		mCurrentCommandList->SetComputeRootSignature(mCurrentRootSignature);
+
+		TrackObject(mCurrentRootSignature);
+	}
+}
+
 void NFGE::Graphics::GraphicsSystem::SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitiveTopology)
 {
 	mCurrentCommandList->IASetPrimitiveTopology(primitiveTopology);
@@ -473,7 +527,7 @@ void NFGE::Graphics::GraphicsSystem::SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY
 
 void NFGE::Graphics::GraphicsSystem::SetCompute32BitConstants(uint32_t rootParameterIndex, uint32_t numConstants, const void* constants)
 {
-	mCurrentCommandList->SetGraphicsRoot32BitConstants(rootParameterIndex, numConstants, constants, 0);
+	mCurrentCommandList->SetComputeRoot32BitConstants(rootParameterIndex, numConstants, constants, 0);
 }
 
 void NFGE::Graphics::GraphicsSystem::SetShaderResourceView(uint32_t rootParameterIndex, uint32_t descriptorOffset, const Resource& resource, D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources, const D3D12_SHADER_RESOURCE_VIEW_DESC* srv)
@@ -490,7 +544,7 @@ void NFGE::Graphics::GraphicsSystem::SetShaderResourceView(uint32_t rootParamete
 		TransitionBarrier(resource, stateAfter);
 	}
 
-	mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(rootParameterIndex, descriptorOffset, 1, resource.GetShaderResourceView(srv));
+	mDynamicDescriptorHeapKits[mCurrentCommandList->GetType()].mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(rootParameterIndex, descriptorOffset, 1, resource.GetShaderResourceView(srv));
 
 	TrackResource(resource.GetD3D12Resource().Get());
 }
@@ -509,7 +563,7 @@ void NFGE::Graphics::GraphicsSystem::SetUnorderedAccessView(uint32_t rootParamet
 		TransitionBarrier(resource, stateAfter);
 	}
 
-	mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(rootParameterIndex, descrptorOffset, 1, resource.GetUnorderedAccessView(uav));
+	mDynamicDescriptorHeapKits[mCurrentCommandList->GetType()].mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(rootParameterIndex, descrptorOffset, 1, resource.GetUnorderedAccessView(uav));
 
 	TrackResource(resource.GetD3D12Resource().Get());
 }
@@ -520,7 +574,7 @@ void NFGE::Graphics::GraphicsSystem::Draw(uint32_t vertexCount, uint32_t instanc
 
 	for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 	{
-		mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDraw();
+		mDynamicDescriptorHeapKits[mCurrentCommandList->GetType()].mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDraw();
 	}
 
 	mCurrentCommandList->DrawInstanced(vertexCount, instanceCount, startVertex, startInstance);
@@ -532,7 +586,7 @@ void NFGE::Graphics::GraphicsSystem::DrawIndexed(uint32_t indexCount, uint32_t i
 
 	for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 	{
-		mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDraw();
+		mDynamicDescriptorHeapKits[mCurrentCommandList->GetType()].mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDraw();
 	}
 
 	mCurrentCommandList->DrawIndexedInstanced(indexCount, instanceCount, startIndex, baseVertex, startInstance);
@@ -544,7 +598,7 @@ void NFGE::Graphics::GraphicsSystem::Dispatch(uint32_t numGroupsX, uint32_t numG
 
 	for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 	{
-		mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDispatch();
+		mDynamicDescriptorHeapKits[mCurrentCommandList->GetType()].mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDispatch();
 	}
 
 	mCurrentCommandList->Dispatch(numGroupsX, numGroupsY, numGroupsZ);
@@ -552,15 +606,15 @@ void NFGE::Graphics::GraphicsSystem::Dispatch(uint32_t numGroupsX, uint32_t numG
 
 void NFGE::Graphics::GraphicsSystem::SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, ID3D12DescriptorHeap* heap)
 {
-	if (mDescriptorHeaps[heapType] != heap)
+	if (mDynamicDescriptorHeapKits[mCurrentCommandList->GetType()].mDescriptorHeaps[heapType] != heap)
 	{
-		mDescriptorHeaps[heapType] = heap;
+		mDynamicDescriptorHeapKits[mCurrentCommandList->GetType()].mDescriptorHeaps[heapType] = heap;
 		UINT numDescriptorHeaps = 0;
 		ID3D12DescriptorHeap* descriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = {};
 
 		for (uint32_t i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 		{
-			ID3D12DescriptorHeap* descriptorHeap = mDescriptorHeaps[i];
+			ID3D12DescriptorHeap* descriptorHeap = mDynamicDescriptorHeapKits[mCurrentCommandList->GetType()].mDescriptorHeaps[i];
 			if (descriptorHeap)
 			{
 				descriptorHeaps[numDescriptorHeaps++] = descriptorHeap;

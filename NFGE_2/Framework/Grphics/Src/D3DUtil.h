@@ -8,6 +8,7 @@ namespace NFGE::Graphics
 
 	Microsoft::WRL::ComPtr<ID3D12Device2> GetDevice();
 	CommandQueue* GetCommandQueue(D3D12_COMMAND_LIST_TYPE type);
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> GetCommandList(D3D12_COMMAND_LIST_TYPE type);
 	uint8_t GetFrameCount();
 	void Flush();
 
