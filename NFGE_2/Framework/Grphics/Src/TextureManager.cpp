@@ -76,9 +76,9 @@ TextureId NFGE::Graphics::TextureManager::LoadTexture(std::filesystem::path file
         auto commandList = NFGE::Graphics::GetCommandList(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE);;
 		iter->second = std::make_unique<Texture>();
         if (isUsingRootPath)
-            LoadTextureFromFile(*iter->second, mRootPath / filename, textureUsage, commandList);
+            LoadTextureFromFile(*iter->second.get(), mRootPath / filename, textureUsage, commandList);
         else
-            LoadTextureFromFile(*iter->second, filename, textureUsage, commandList);
+            LoadTextureFromFile(*iter->second.get(), filename, textureUsage, commandList);
 	}
 	else
 	{

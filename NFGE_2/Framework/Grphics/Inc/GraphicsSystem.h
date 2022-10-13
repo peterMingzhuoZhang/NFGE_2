@@ -65,6 +65,7 @@ namespace NFGE::Graphics {
 
 		void BeginRender(RenderType type);
 		ComPtr<ID3D12GraphicsCommandList2> GetCurrentCommandList() const { return mCurrentCommandList; }
+		void SetCurrentCommandList(ComPtr<ID3D12GraphicsCommandList2> comandList) { mCurrentCommandList = comandList; }
 		void EndRender(RenderType type);
 
 		void ToggleFullscreen(HWND WindowHandle);
@@ -133,6 +134,7 @@ namespace NFGE::Graphics {
 		void Dispatch(uint32_t numGroupsX, uint32_t numGroupsY = 1, uint32_t numGroupsZ = 1);
 
 		void SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, ID3D12DescriptorHeap* heap);
+		void Reset();
 		
 		struct DynamicDescriptorHeapKit
 		{

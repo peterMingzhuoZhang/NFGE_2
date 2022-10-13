@@ -193,6 +193,10 @@ void NFGE::Graphics::DynamicDescriptorHeap::ParseRootSignature(const RootSignatu
 
 void NFGE::Graphics::DynamicDescriptorHeap::Reset()
 {
+	if (!mCurrentDescriptorHeap)
+	{
+		return;
+	}
 	mAvailableDescriptorHeaps = mDescriptorHeapPool;
 	mCurrentDescriptorHeap.Reset();
 	mCurrentCPUDescriptorHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(D3D12_DEFAULT);

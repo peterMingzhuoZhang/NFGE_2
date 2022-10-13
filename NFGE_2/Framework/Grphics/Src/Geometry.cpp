@@ -23,6 +23,7 @@ void NFGE::Graphics::GeometryPX::Load(MeshPX mesh, DirectionalLight* directionLi
 	auto device = NFGE::Graphics::GetDevice();
 	auto commandQueue = NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	auto commandList = commandQueue->GetCommandList();
+	NFGE::Graphics::GraphicsSystem::Get()->SetCurrentCommandList(commandList);
 
 	// Upload vertex buffer data.
 	ComPtr<ID3D12Resource> intermediateVertexBuffer;

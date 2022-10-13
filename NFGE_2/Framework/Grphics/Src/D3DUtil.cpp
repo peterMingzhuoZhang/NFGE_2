@@ -34,14 +34,16 @@ NFGE::Graphics::CommandQueue* NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST
     }
 
     ASSERT(commandQueue, "CommandQueue should not be nullptr.");
-    graphicSystem->mCurrentCommandList = commandQueue->GetCommandList();
+    //graphicSystem->mCurrentCommandList = commandQueue->GetCommandList();
     return commandQueue;
 }
 
-Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> NFGE::Graphics::GetCommandList(D3D12_COMMAND_LIST_TYPE type)
+Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> NFGE::Graphics::GetCommandList(D3D12_COMMAND_LIST_TYPE type)// TODO: remove this
 {
     auto commandQueue = GetCommandQueue(type);
-    return NFGE::Graphics::GraphicsSystem::Get()->GetCurrentCommandList();
+    auto commandList = commandQueue->GetCommandList();
+    NFGE::Graphics::GraphicsSystem::Get()->SetCurrentCommandList(commandList);
+    return commandList;
 }
 
 uint8_t  NFGE::Graphics::GetFrameCount()

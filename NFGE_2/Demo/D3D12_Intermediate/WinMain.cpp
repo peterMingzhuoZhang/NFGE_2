@@ -77,6 +77,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
             graphicSystem->BeginRender(NFGE::Graphics::RenderType::Direct);
             Render();
             graphicSystem->EndRender(NFGE::Graphics::RenderType::Direct);
+            graphicSystem->Reset();
         }
         
     }

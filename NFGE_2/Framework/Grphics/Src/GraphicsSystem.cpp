@@ -222,8 +222,8 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 
 	mUploadBuffer = std::make_unique<UploadBuffer>();
 
-	mDynamicDescriptorHeapKits.reserve(D3D12_COMMAND_LIST_TYPE_VIDEO_ENCODE);
-	for (size_t i = 0; i < D3D12_COMMAND_LIST_TYPE_VIDEO_ENCODE; i++) 
+	mDynamicDescriptorHeapKits.reserve(D3D12_COMMAND_LIST_TYPE_VIDEO_DECODE);
+	for (size_t i = 0; i < D3D12_COMMAND_LIST_TYPE_VIDEO_DECODE; i++)
 	{
 		mDynamicDescriptorHeapKits.emplace_back();
 	}
@@ -262,6 +262,7 @@ void GraphicsSystem::BeginRender(RenderType type)
 
 		//D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 		//ShiftRTVDescriptorHandle(rtvHandle, mCurrentBackBufferIndex, mRTVDescriptorSize);
+		//NFGE::Graphics::GraphicsSystem::Get()->TransitionBarrier(currentBackbuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,true);
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
 			mCurrentBackBufferIndex, mRTVDescriptorSize);
 		auto dsv = mDSVHeap->GetCPUDescriptorHandleForHeapStart();
@@ -287,6 +288,7 @@ void GraphicsSystem::EndRender(RenderType type)
 	//mCurrentCommandList->ResourceBarrier(1, &barrier);
 	TransitionResource(mCurrentCommandList, currentBackbuffer,
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	//NFGE::Graphics::GraphicsSystem::Get()->TransitionBarrier(currentBackbuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, true);
 
 	//ID3D12CommandList* const commandLists[] = { mCurrentCommandList.Get()};
 	mFrameFenceValues[mCurrentBackBufferIndex] = commandQueue->ExecuteCommandList(mCurrentCommandList);
@@ -623,6 +625,26 @@ void NFGE::Graphics::GraphicsSystem::SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYP
 
 		mCurrentCommandList->SetDescriptorHeaps(numDescriptorHeaps, descriptorHeaps);
 	}
+}
+
+void NFGE::Graphics::GraphicsSystem::Reset()
+{
+	mResourceStateTracker->Reset();
+	mUploadBuffer->Reset();
+
+	mTrackedObjects.clear();
+
+	for (size_t i = 0; i < D3D12_COMMAND_LIST_TYPE_VIDEO_DECODE; i++)
+	{
+		auto& current = mDynamicDescriptorHeapKits[i];
+		for (int j = 0; j < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++j)
+		{
+			current.mDynamicDescriptorHeap[i]->Reset();
+			current.mDescriptorHeaps[i] = nullptr;
+		}
+	}
+
+	mCurrentRootSignature = nullptr;
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE NFGE::Graphics::GraphicsSystem::GetCurrentRenderTargetView() const
