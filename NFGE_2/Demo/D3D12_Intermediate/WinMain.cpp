@@ -82,6 +82,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         
     }
 
+    NFGE::Graphics::TextureManager::StaticTerminate();
     NFGE::Graphics::GraphicsSystem::StaticTerminate();
 
     myWindow.Terminate();

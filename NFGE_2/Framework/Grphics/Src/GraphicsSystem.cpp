@@ -292,6 +292,7 @@ void GraphicsSystem::EndRender(RenderType type)
 
 	//ID3D12CommandList* const commandLists[] = { mCurrentCommandList.Get()};
 	mFrameFenceValues[mCurrentBackBufferIndex] = commandQueue->ExecuteCommandList(mCurrentCommandList);
+	commandQueue->WaitForFenceValue(mFrameFenceValues[mCurrentBackBufferIndex]);
 
 	uint32_t syncInterval = mVSync ? 1 : 0;
 	uint32_t presentFlag = 0; // set up present flags if needed
@@ -299,7 +300,6 @@ void GraphicsSystem::EndRender(RenderType type)
 
 	mCurrentBackBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 
-	commandQueue->WaitForFenceValue(mFrameFenceValues[mCurrentBackBufferIndex]);
 }
 
 void GraphicsSystem::ToggleFullscreen(HWND windowHandle)
