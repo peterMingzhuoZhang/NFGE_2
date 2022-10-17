@@ -177,7 +177,8 @@ void Texture::CreateViews()
             device->CreateDepthStencilView(mD3d12Resource.Get(), nullptr, mDepthStencilView.GetDescriptorHandle());
         }
 
-        
+        mWidth = desc.Width;
+        mHeight = desc.Height;
     }
 
     std::lock_guard<std::mutex> lock(mShaderResourceViewsMutex);

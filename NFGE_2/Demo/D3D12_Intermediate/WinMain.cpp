@@ -17,8 +17,8 @@ void Load()
     myCamera.SetPosition(0.0f);
 
     myBall.Load(NFGE::Graphics::MeshBuilder::CreateSpherePX(10, 10, 10), &myLight);
-    myBall.mMeshRenderStrcuture.mTexture_0 = NFGE::Graphics::TextureManager::Get()->LoadTexture("basketball.jpg", NFGE::Graphics::TextureUsage::Albedo, true);
-    myBall.mMeshContext.position = { 0.0f,0.0f, 5.0f };
+    myBall.mMeshRenderStrcuture.mTexture_0 = NFGE::Graphics::TextureManager::Get()->LoadTexture("texcoord.png", NFGE::Graphics::TextureUsage::Albedo, true);
+    myBall.mMeshContext.position = { 0.0f,0.0f, 40.0f };
 
 }
 
