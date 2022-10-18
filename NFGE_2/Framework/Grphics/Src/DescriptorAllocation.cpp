@@ -22,7 +22,7 @@ DescriptorAllocation::DescriptorAllocation()
 NFGE::Graphics::DescriptorAllocation::DescriptorAllocation(D3D12_CPU_DESCRIPTOR_HANDLE descriptor, uint32_t numHandles, uint32_t descriptorSize, DescriptorAllocatorPage* page)
 	: mDescriptor{ descriptor }
 	, mNumHandles( numHandles )
-	, mDescriptorSize{ 0 }
+	, mDescriptorSize{ descriptorSize }
 	, mPage{ page }
 {}
 

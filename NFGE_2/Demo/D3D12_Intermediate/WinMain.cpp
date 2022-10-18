@@ -1,5 +1,6 @@
 #include <Core/Inc/Core.h>
 #include <Grphics/Inc/Graphics.h>
+#include "Grphics/Src/D3DUtil.h" // hack
 #include <NFGE_2/Inc/NFGE_2.h>
 
 NFGE::Graphics::DirectionalLight myLight;
@@ -16,10 +17,14 @@ void Load()
     myCamera.SetDirection({ 0.0f,0.0f,1.0f });
     myCamera.SetPosition(0.0f);
 
-    myBall.Load(NFGE::Graphics::MeshBuilder::CreateSpherePX(10, 10, 10), &myLight);
+    myBall.Load(NFGE::Graphics::MeshBuilder::CreateSpherePX(100, 100, 10), &myLight);
     myBall.mMeshRenderStrcuture.mTexture_0 = NFGE::Graphics::TextureManager::Get()->LoadTexture("texcoord.png", NFGE::Graphics::TextureUsage::Albedo, true);
     myBall.mMeshContext.position = { 0.0f,0.0f, 40.0f };
 
+    auto commandQueue = NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE);
+    auto commandList = NFGE::Graphics::GraphicsSystem::Get()->GetCurrentCommandList();
+    auto fenceValue = commandQueue->ExecuteCommandList(commandList);
+    commandQueue->WaitForFenceValue(fenceValue);
 }
 
 void Render()
@@ -76,6 +81,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
             auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
             graphicSystem->BeginRender(NFGE::Graphics::RenderType::Direct);
             Render();
+            //NFGE::Graphics::Texture* texture = NFGE::Graphics::TextureManager::Get()->GetTexture(myBall.mMeshRenderStrcuture.mTexture_0);
+            //auto rtv = texture->GetRenderTargetView();
+            //auto dsv = texture->GetDepthStencilView();
+            //graphicSystem->GetCurrentCommandList()->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
             graphicSystem->EndRender(NFGE::Graphics::RenderType::Direct);
             graphicSystem->Reset();
         }

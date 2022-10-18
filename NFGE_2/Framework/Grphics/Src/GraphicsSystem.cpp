@@ -679,7 +679,7 @@ void NFGE::Graphics::GraphicsSystem::UpdateRenderTargetViews(Microsoft::WRL::Com
 
 	for (int i = 0; i < sNumFrames; ++i)
 	{
-		ComPtr<ID3D12Resource> backBuffer;
+		//ComPtr<ID3D12Resource> backBuffer;
 		ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&mBackBuffers[i])));
 
 		device->CreateRenderTargetView(mBackBuffers[i].Get(), nullptr, rtvHandle);
