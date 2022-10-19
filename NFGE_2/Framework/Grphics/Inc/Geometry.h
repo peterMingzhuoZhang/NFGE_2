@@ -9,7 +9,7 @@
 #include "Mesh.h"
 #include "Light.h"
 #include "Camera.h"
-#include "RootSignature.h"
+#include "PipelineComponent.h"
 #include "TextureManager.h"
 
 namespace NFGE::Graphics
@@ -18,29 +18,8 @@ namespace NFGE::Graphics
 	{
 	public:
 		MeshPX mMesh;
-		struct GeometryMeshRenderStrcuture {
-			// Vertex buffer
-			Microsoft::WRL::ComPtr<ID3D12Resource> vertexBuffer;
-			D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
-			// Index buffer
-			Microsoft::WRL::ComPtr<ID3D12Resource> indexBuffer;
-			D3D12_INDEX_BUFFER_VIEW indexBufferView;
-
-			RootSignature rootSignature; // PipelineWorker
-
-			Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState; // PipelineWorker
-
-			//D3D12_INPUT_ELEMENT_DESC inputLayout[];	// PipelineWorker
-
-			// Constant buffer for Transform matrixs
-			// Constant buffer for Light
-			// Constant buffer for material
-
-			// VertexShader --> pipeline state
-			// PixelShader --> pipeline state
-
-			size_t mTexture_0;
-		} mMeshRenderStrcuture;
+		PipelineComponent_Basic mPipelineComp_Basic;
+		PipelineComponent_SingleTexture mPipelineComp_Texture;
 
 		struct GeometryMeshContext {
 			NFGE::Math::Matrix4 custumAdjustMatrix = NFGE::Math::Matrix4::sIdentity();

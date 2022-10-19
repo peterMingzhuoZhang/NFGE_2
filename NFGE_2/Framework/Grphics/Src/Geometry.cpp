@@ -29,22 +29,22 @@ void NFGE::Graphics::GeometryPX::Load(MeshPX mesh, DirectionalLight* directionLi
 	ComPtr<ID3D12Resource> intermediateVertexBuffer;
 	auto& vertices = mMesh.GetVertices();
 	NFGE::Graphics::GraphicsSystem::UpdateBufferResource(commandList.Get(),
-		&mMeshRenderStrcuture.vertexBuffer, &intermediateVertexBuffer,
+		&mPipelineComp_Basic.vertexBuffer, &intermediateVertexBuffer,
 		vertices.size(), sizeof(VertexPX), vertices.data());
 	// Create the vertex buffer view.
-	mMeshRenderStrcuture.vertexBufferView.BufferLocation = mMeshRenderStrcuture.vertexBuffer->GetGPUVirtualAddress();
-	mMeshRenderStrcuture.vertexBufferView.SizeInBytes = vertices.size() * sizeof(VertexPX);
-	mMeshRenderStrcuture.vertexBufferView.StrideInBytes = sizeof(VertexPX);
+	mPipelineComp_Basic.vertexBufferView.BufferLocation = mPipelineComp_Basic.vertexBuffer->GetGPUVirtualAddress();
+	mPipelineComp_Basic.vertexBufferView.SizeInBytes = vertices.size() * sizeof(VertexPX);
+	mPipelineComp_Basic.vertexBufferView.StrideInBytes = sizeof(VertexPX);
 	// Upload index buffer data.
 	ComPtr<ID3D12Resource> intermediateIndexBuffer;
 	auto& indices = mMesh.GetIndices();
 	NFGE::Graphics::GraphicsSystem::UpdateBufferResource(commandList.Get(),
-		&mMeshRenderStrcuture.indexBuffer, &intermediateIndexBuffer,
+		&mPipelineComp_Basic.indexBuffer, &intermediateIndexBuffer,
 		indices.size(), sizeof(uint16_t), indices.data());
 	// Create index buffer view.
-	mMeshRenderStrcuture.indexBufferView.BufferLocation = mMeshRenderStrcuture.indexBuffer->GetGPUVirtualAddress();
-	mMeshRenderStrcuture.indexBufferView.Format = DXGI_FORMAT_R16_UINT;
-	mMeshRenderStrcuture.indexBufferView.SizeInBytes = indices.size() * 2;
+	mPipelineComp_Basic.indexBufferView.BufferLocation = mPipelineComp_Basic.indexBuffer->GetGPUVirtualAddress();
+	mPipelineComp_Basic.indexBufferView.Format = DXGI_FORMAT_R16_UINT;
+	mPipelineComp_Basic.indexBufferView.SizeInBytes = indices.size() * 2;
 
 	auto fenceValue = commandQueue->ExecuteCommandList(commandList);
 	commandQueue->WaitForFenceValue(fenceValue);
@@ -111,7 +111,7 @@ void NFGE::Graphics::GeometryPX::Load(MeshPX mesh, DirectionalLight* directionLi
 	//ThrowIfFailed(device->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(),
 	//	rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&mMeshRenderStrcuture.rootSignature)));
 
-	mMeshRenderStrcuture.rootSignature.SetRootSignatureDesc(rootSignatureDescription.Desc_1_1, featureData.HighestVersion);
+	mPipelineComp_Basic.rootSignature.SetRootSignatureDesc(rootSignatureDescription.Desc_1_1, featureData.HighestVersion);
 
 	struct PipelineStateStream
 	{
@@ -128,7 +128,7 @@ void NFGE::Graphics::GeometryPX::Load(MeshPX mesh, DirectionalLight* directionLi
 	rtvFormats.NumRenderTargets = 1;
 	rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-	pipelineStateStream.pRootSignature = mMeshRenderStrcuture.rootSignature.GetRootSignature().Get();
+	pipelineStateStream.pRootSignature = mPipelineComp_Basic.rootSignature.GetRootSignature().Get();
 	pipelineStateStream.InputLayout = { vertexLayout.data(), static_cast<UINT>(vertexLayout.size()) };
 	pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vertexShaderBlob.Get());
@@ -139,7 +139,7 @@ void NFGE::Graphics::GeometryPX::Load(MeshPX mesh, DirectionalLight* directionLi
 	D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
 		sizeof(PipelineStateStream), &pipelineStateStream
 	};
-	ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&mMeshRenderStrcuture.pipelineState)));
+	ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&mPipelineComp_Basic.pipelineState)));
 
 }
 
@@ -156,13 +156,13 @@ void NFGE::Graphics::GeometryPX::Render(const NFGE::Graphics::Camera& camera)
 	auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
 	auto commandList = graphicSystem->GetCurrentCommandList();
 
-	commandList->SetPipelineState(mMeshRenderStrcuture.pipelineState.Get());
+	commandList->SetPipelineState(mPipelineComp_Basic.pipelineState.Get());
 	//commandList->SetGraphicsRootSignature(mMeshRenderStrcuture.rootSignature.Get());
-	graphicSystem->SetGraphicsRootSignature(mMeshRenderStrcuture.rootSignature);
+	graphicSystem->SetGraphicsRootSignature(mPipelineComp_Basic.rootSignature);
 	//commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	graphicSystem->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	commandList->IASetVertexBuffers(0, 1, & mMeshRenderStrcuture.vertexBufferView);
-	commandList->IASetIndexBuffer(&mMeshRenderStrcuture.indexBufferView);
+	commandList->IASetVertexBuffers(0, 1, &mPipelineComp_Basic.vertexBufferView);
+	commandList->IASetIndexBuffer(&mPipelineComp_Basic.indexBufferView);
 
 	Matrix4 matrices[3];
 	matrices[0] = Matrix4::sScaling(mMeshContext.scale) * MatrixRotationQuaternion(mMeshContext.rotation) * Matrix4::sTranslation(mMeshContext.position);
@@ -173,7 +173,7 @@ void NFGE::Graphics::GeometryPX::Render(const NFGE::Graphics::Camera& camera)
 	matrices[2] = Transpose(matrices[2]);
 	commandList->SetGraphicsRoot32BitConstants(0, sizeof(Matrix4) * 3 / 4, &matrices, 0);
 	// Bind texture
-	Texture* texture = NFGE::Graphics::TextureManager::Get()->GetTexture(mMeshRenderStrcuture.mTexture_0);
+	Texture* texture = NFGE::Graphics::TextureManager::Get()->GetTexture(mPipelineComp_Texture.mTexture);
 	graphicSystem->SetShaderResourceView(1, 0, *texture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	graphicSystem->DrawIndexed(mMesh.GetIndices().size(), 1, 0, 0, 0);

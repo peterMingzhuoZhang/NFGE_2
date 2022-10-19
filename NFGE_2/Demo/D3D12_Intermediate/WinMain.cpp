@@ -18,7 +18,7 @@ void Load()
     myCamera.SetPosition(0.0f);
 
     myBall.Load(NFGE::Graphics::MeshBuilder::CreateSpherePX(100, 100, 10), &myLight);
-    myBall.mMeshRenderStrcuture.mTexture_0 = NFGE::Graphics::TextureManager::Get()->LoadTexture("texcoord.png", NFGE::Graphics::TextureUsage::Albedo, true);
+    myBall.mPipelineComp_Texture.mTexture = NFGE::Graphics::TextureManager::Get()->LoadTexture("texcoord.png", NFGE::Graphics::TextureUsage::Albedo, true);
     myBall.mMeshContext.position = { 0.0f,0.0f, 40.0f };
 
     auto commandQueue = NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE);
@@ -36,6 +36,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
     NFGE::Core::Window myWindow;
     myWindow.Initialize(hInstance, "Hello Window", 1280, 720, false, NULL);
+
     NFGE::Graphics::GraphicsSystem::StaticInitialize(myWindow, true, false, 0);
     std::filesystem::path assetsDirectory = L"../../Assets/Images";
     NFGE::Graphics::TextureManager::StaticInitialize(assetsDirectory);

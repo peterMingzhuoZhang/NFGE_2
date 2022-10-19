@@ -155,7 +155,7 @@ namespace NFGE::Graphics {
 
 		friend LRESULT CALLBACK GraphicsSystemMessageHandler(HWND window, UINT message, WPARAM wPrarm, LPARAM lParam);
 		friend ComPtr<ID3D12Device2> GetDevice();
-		friend CommandQueue* GetCommandQueue(D3D12_COMMAND_LIST_TYPE type);
+		friend CommandQueue* GetCommandQueue(D3D12_COMMAND_LIST_TYPE type); // TODO use woker instead
 		friend uint8_t GetFrameCount();
 		friend void Flush();
 
@@ -183,7 +183,7 @@ namespace NFGE::Graphics {
 		// DirectX 12 Objects
 		// Allocation and Control
 		ComPtr<ID3D12Device2> mDevice{ nullptr };
-		ComPtr<ID3D12GraphicsCommandList2> mCurrentCommandList{ nullptr };
+		ComPtr<ID3D12GraphicsCommandList2> mCurrentCommandList{ nullptr }; 
 		ID3D12RootSignature* mCurrentRootSignature;
 		std::unique_ptr<CommandQueue> mDirectCommandQueue{ nullptr };
 		std::unique_ptr<CommandQueue> mComputeCommandQueue{ nullptr };

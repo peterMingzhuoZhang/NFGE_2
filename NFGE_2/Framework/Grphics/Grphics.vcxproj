@@ -155,6 +155,7 @@
     <ClInclude Include="Inc\Material.h" />
     <ClInclude Include="Inc\Mesh.h" />
     <ClInclude Include="Inc\Model.h" />
+    <ClInclude Include="Inc\PipelineComponent.h" />
     <ClInclude Include="Inc\PipelineWorker.h" />
     <ClInclude Include="Inc\RenderTarget.h" />
     <ClInclude Include="Inc\Resource.h" />

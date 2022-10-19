@@ -136,7 +136,10 @@
       <Filter>Inc\RenderObject</Filter>
     </ClInclude>
     <ClInclude Include="Inc\PipelineWorker.h">
-      <Filter>Inc\NFGE_D3d12</Filter>
+      <Filter>Inc\RenderObject</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\PipelineComponent.h">
+      <Filter>Inc\RenderObject</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -200,9 +203,6 @@
     <ClCompile Include="Src\Geometry.cpp">
       <Filter>Src\RenderObject</Filter>
     </ClCompile>
-    <ClCompile Include="Src\PipelineWorker.cpp">
-      <Filter>Src\NFGE_D3D12</Filter>
-    </ClCompile>
     <ClCompile Include="Src\Texture.cpp">
       <Filter>Src\Material</Filter>
     </ClCompile>
@@ -211,6 +211,9 @@
     </ClCompile>
     <ClCompile Include="Src\Camera.cpp">
       <Filter>Src\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PipelineWorker.cpp">
+      <Filter>Src\RenderObject</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
