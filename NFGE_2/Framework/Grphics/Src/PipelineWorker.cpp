@@ -16,6 +16,9 @@
 #include "IndexBuffer.h"
 #include "UploadBuffer.h"
 #include "RootSignature.h"
+#include "RenderTarget.h"
+#include "Resource.h"
+#include "CommandQueue.h"
 #include "D3DUtil.h"
 
 using namespace NFGE::Graphics;
@@ -23,6 +26,12 @@ using namespace NFGE::Graphics;
 NFGE::Graphics::PipelineWorker::PipelineWorker(WokerType type)
 	:mType(type)
 {
+    Initialize();
+}
+
+void NFGE::Graphics::PipelineWorker::Initialize()
+{
+    auto device = NFGE::Graphics::GetDevice();
     mResourceStateTracker = std::make_unique<ResourceStateTracker>();
 
     for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
@@ -32,10 +41,34 @@ NFGE::Graphics::PipelineWorker::PipelineWorker(WokerType type)
     }
 
     mUploadBuffer = std::make_unique<UploadBuffer>();
+
+    mCommandQueue = std::make_unique<CommandQueue>(device, static_cast<D3D12_COMMAND_LIST_TYPE>(mType));
+    mResourceStateTracker = std::make_unique<ResourceStateTracker>();
 }
 
-void NFGE::Graphics::PipelineWorker::Initialize()
+void NFGE::Graphics::PipelineWorker::Terminate()
 {
+    Reset();
+    mResourceStateTracker->Reset();
+    mUploadBuffer->Reset();
+    for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+    {
+        mDynamicDescriptorHeap[i]->Reset();
+        mDescriptorHeaps[i] = nullptr;
+    }
+}
+
+void NFGE::Graphics::PipelineWorker::BeginWork()
+{
+    mCurrentCommandList = mCommandQueue->GetCommandList();
+}
+
+void NFGE::Graphics::PipelineWorker::EndWork()
+{
+    ASSERT(mCurrentCommandList, "Current PipleineWorker is not Begin work.");
+    auto signal = mCommandQueue->ExecuteCommandList(mCurrentCommandList);
+    mCommandQueue->WaitForFenceValue(signal);
+    mCurrentCommandList = nullptr;
 }
 
 void NFGE::Graphics::PipelineWorker::TransitionBarrier(const Resource& resource, D3D12_RESOURCE_STATES stateAfter, UINT subresource, bool flushBarriers)
@@ -395,6 +428,142 @@ void NFGE::Graphics::PipelineWorker::SetUnorderedAccessView(uint32_t rootParamet
     TrackResource(resource);
 }
 
+void NFGE::Graphics::PipelineWorker::SetRenderTarget(const RenderTarget& renderTarget)
+{
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> renderTargetDescriptors;
+    renderTargetDescriptors.reserve(AttachmentPoint::NumAttachmentPoints);
+
+    const auto& textures = renderTarget.GetTextures();
+
+    // Bind color targets (max of 8 render targets can be bound to the rendering pipeline.
+    for (int i = 0; i < RenderTarget::sMaxRendertarget; ++i)
+    {
+        auto& texture = textures[i];
+
+        if (texture.IsValid())
+        {
+            TransitionBarrier(texture, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            renderTargetDescriptors.push_back(texture.GetRenderTargetView());
+
+            TrackResource(texture);
+        }
+    }
+
+    const auto& depthTexture = renderTarget.GetTexture(AttachmentPoint::DepthStencil);
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE depthStencilDescriptor(D3D12_DEFAULT);
+    if (depthTexture.GetD3D12Resource())
+    {
+        TransitionBarrier(depthTexture, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+        depthStencilDescriptor = depthTexture.GetDepthStencilView();
+
+        TrackResource(depthTexture);
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE* pDSV = depthStencilDescriptor.ptr != 0 ? &depthStencilDescriptor : nullptr;
+
+    ASSERT(mCurrentCommandList, "Current PipleineWorker is not Begin work.");
+    mCurrentCommandList->OMSetRenderTargets(static_cast<UINT>(renderTargetDescriptors.size()),
+        renderTargetDescriptors.data(), FALSE, pDSV);
+}
+
+void NFGE::Graphics::PipelineWorker::SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, ID3D12DescriptorHeap* heap)
+{
+    if (mDescriptorHeaps[heapType] != heap)
+    {
+        mDescriptorHeaps[heapType] = heap;
+        BindDescriptorHeaps();
+    }
+}
+
+void NFGE::Graphics::PipelineWorker::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t startVertex, uint32_t startInstance)
+{
+    FlushResourceBarriers();
+
+    for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+    {
+        mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDraw(*this);
+    }
+
+    ASSERT(mCurrentCommandList, "Current PipleineWorker is not Begin work.");
+    mCurrentCommandList->DrawInstanced(vertexCount, instanceCount, startVertex, startInstance);
+}
+
+void NFGE::Graphics::PipelineWorker::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t startIndex, int32_t baseVertex, uint32_t startInstance)
+{
+    FlushResourceBarriers();
+
+    for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+    {
+        mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDraw(*this);
+    }
+
+    ASSERT(mCurrentCommandList, "Current PipleineWorker is not Begin work.");
+    mCurrentCommandList->DrawIndexedInstanced(indexCount, instanceCount, startIndex, baseVertex, startInstance);
+}
+
+void NFGE::Graphics::PipelineWorker::Dispatch(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ)
+{
+    FlushResourceBarriers();
+
+    for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+    {
+        mDynamicDescriptorHeap[i]->CommitStagedDescriptorsForDispatch(*this);
+    }
+
+    ASSERT(mCurrentCommandList, "Current PipleineWorker is not Begin work.");
+    mCurrentCommandList->Dispatch(numGroupsX, numGroupsY, numGroupsZ);
+}
+
+void NFGE::Graphics::PipelineWorker::FlushResourceBarriers()
+{
+    ASSERT(mCurrentCommandList, "Current PipleineWorker is not Begin work.");
+    mResourceStateTracker->FlushResourceBarriers(mCurrentCommandList);
+}
+
+void NFGE::Graphics::PipelineWorker::ReleaseTrackedObjects()
+{
+    mTrackedObjects.clear();
+}
+
+void NFGE::Graphics::PipelineWorker::Reset()
+{
+    mResourceStateTracker->Reset();
+    mUploadBuffer->Reset();
+
+    ReleaseTrackedObjects();
+
+    for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+    {
+        mDynamicDescriptorHeap[i]->Reset();
+        mDescriptorHeaps[i] = nullptr;
+    }
+
+    mCurrentRootSignature = nullptr;
+}
+
+void NFGE::Graphics::PipelineWorker::Close()
+{
+    FlushResourceBarriers();
+    ASSERT(mCurrentCommandList, "Current PipleineWorker is not Begin work.");
+    mCurrentCommandList->Close();
+}
+
+void NFGE::Graphics::PipelineWorker::TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object)
+{
+    mTrackedObjects.push_back(object);
+}
+
+void NFGE::Graphics::PipelineWorker::TrackResource(const Resource& res)
+{
+    TrackResource(res.GetD3D12Resource().Get());
+}
+
+void NFGE::Graphics::PipelineWorker::TrackResource(ID3D12Resource* res)
+{
+    mTrackedObjects.push_back(res);
+}
+
 void NFGE::Graphics::PipelineWorker::CopyBuffer(Buffer& buffer, size_t numElements, size_t elementSize, const void* bufferData, D3D12_RESOURCE_FLAGS flags)
 {
     auto device = NFGE::Graphics::GetDevice();
@@ -451,4 +620,22 @@ void NFGE::Graphics::PipelineWorker::CopyBuffer(Buffer& buffer, size_t numElemen
 
     buffer.SetD3D12Resource(d3d12Resource);
     buffer.CreateViews(numElements, elementSize);
+}
+
+void NFGE::Graphics::PipelineWorker::BindDescriptorHeaps()
+{
+    UINT numDescriptorHeaps = 0;
+    ID3D12DescriptorHeap* descriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = {};
+
+    for (uint32_t i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+    {
+        ID3D12DescriptorHeap* descriptorHeap = mDescriptorHeaps[i];
+        if (descriptorHeap)
+        {
+            descriptorHeaps[numDescriptorHeaps++] = descriptorHeap;
+        }
+    }
+
+    ASSERT(mCurrentCommandList, "Current PipleineWorker is not Begin work.");
+    mCurrentCommandList->SetDescriptorHeaps(numDescriptorHeaps, descriptorHeaps);
 }

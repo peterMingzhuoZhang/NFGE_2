@@ -208,7 +208,7 @@ namespace NFGE::Graphics
 		WokerType mType;
 		std::unique_ptr<CommandQueue> mCommandQueue{ nullptr };
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> mCurrentCommandList{ nullptr };
-		ID3D12RootSignature* mCurrentRootSignature;
+        ID3D12RootSignature* mCurrentRootSignature{ nullptr };
 
 		std::unique_ptr<DynamicDescriptorHeap> mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 		ID3D12DescriptorHeap* mDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];

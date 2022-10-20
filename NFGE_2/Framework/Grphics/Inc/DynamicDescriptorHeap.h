@@ -9,7 +9,7 @@
 #include "d3dx12.h"
 
 namespace NFGE::Graphics {
-    class CommandList;
+    class PipelineWorker;
     class RootSignature;
 
     class DynamicDescriptorHeap
@@ -40,6 +40,10 @@ namespace NFGE::Graphics {
         void CommitStagedDescriptors(std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_DESCRIPTOR_HANDLE)> setFunc);
         void CommitStagedDescriptorsForDraw();
         void CommitStagedDescriptorsForDispatch();
+
+        void CommitStagedDescriptors(PipelineWorker& worker, std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_DESCRIPTOR_HANDLE)> setFunc);
+        void CommitStagedDescriptorsForDraw(PipelineWorker& worker);
+        void CommitStagedDescriptorsForDispatch(PipelineWorker& worker);
 
         /**
         * Copies a single CPU visible descriptor to a GPU visible descriptor heap.

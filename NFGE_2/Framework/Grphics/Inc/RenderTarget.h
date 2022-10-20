@@ -28,6 +28,8 @@ namespace NFGE::Graphics
     class RenderTarget
     {
     public:
+        static const size_t sMaxRendertarget;
+
         // Create an empty render target.
         RenderTarget();
 

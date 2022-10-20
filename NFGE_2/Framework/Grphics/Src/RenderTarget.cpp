@@ -9,6 +9,8 @@
 
 using namespace NFGE::Graphics;
 
+const size_t RenderTarget::sMaxRendertarget = 8;
+
 RenderTarget::RenderTarget()
     : mTextures(AttachmentPoint::NumAttachmentPoints)
 {}

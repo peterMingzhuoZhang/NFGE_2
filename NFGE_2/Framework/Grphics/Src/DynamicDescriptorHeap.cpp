@@ -12,6 +12,7 @@
 #include "GraphicsSystem.h"
 #include "CommandList.h"
 #include "RootSignature.h"
+#include "PipelineWorker.h"
 
 using namespace NFGE::Graphics;
 
@@ -127,6 +128,70 @@ void NFGE::Graphics::DynamicDescriptorHeap::CommitStagedDescriptorsForDraw()
 void NFGE::Graphics::DynamicDescriptorHeap::CommitStagedDescriptorsForDispatch()
 {
 	CommitStagedDescriptors(&ID3D12GraphicsCommandList::SetComputeRootDescriptorTable);
+}
+
+void NFGE::Graphics::DynamicDescriptorHeap::CommitStagedDescriptors(PipelineWorker& worker, std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_DESCRIPTOR_HANDLE)> setFunc)
+{
+	// Compute the number of descriptors that need to be copied 
+	uint32_t numDescriptorsToCommit = ComputeStaleDescriptorCount();
+
+	if (numDescriptorsToCommit > 0)
+	{
+		auto device = NFGE::Graphics::GetDevice();
+		auto d3d12GraphicsCommandList = worker.GetGraphicsCommandList().Get();
+		ASSERT(d3d12GraphicsCommandList, "Empty CommandList, PipleineWorker is not Begin work.");
+
+		if (!mCurrentDescriptorHeap || mNumFreeHandles < numDescriptorsToCommit)
+		{
+			mCurrentDescriptorHeap = RequestDescriptorHeap();
+			mCurrentCPUDescriptorHandle = mCurrentDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+			mCurrentGPUDescriptorHandle = mCurrentDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+			mNumFreeHandles = mNumDescriptorsPerHeap;
+
+			worker.SetDescriptorHeap(mDescriptorHeapType, mCurrentDescriptorHeap.Get());
+
+			// When updating the descriptor heap on the command list, all descriptor
+			// tables must be (re)recopied to the new descriptor heap (not just
+			// the stale descriptor tables).
+			mStaleDescriptorTableBitMask = mDescriptorTableBitMask;
+		}
+		DWORD rootIndex;
+		// Scan from LSB to MSB for a bit set in staleDescriptorsBitMask
+		while (_BitScanForward(&rootIndex, mStaleDescriptorTableBitMask))
+		{
+			UINT numSrcDescriptors = mDescriptorTableCache[rootIndex].mNumDescriptors;
+			D3D12_CPU_DESCRIPTOR_HANDLE* pSrcDescriptorHandles = mDescriptorTableCache[rootIndex].mBaseDescriptor;
+			D3D12_CPU_DESCRIPTOR_HANDLE pDestDescriptorRangeStarts[] =
+			{
+				mCurrentCPUDescriptorHandle
+			};
+			UINT pDestDescriptorRangeSizes[] =
+			{
+				numSrcDescriptors
+			};
+			// Copy the staged CPU visible descriptors to the GPU visible descriptor heap.
+			device->CopyDescriptors(1, pDestDescriptorRangeStarts, pDestDescriptorRangeSizes,
+				numSrcDescriptors, pSrcDescriptorHandles, nullptr, mDescriptorHeapType);
+			// Set the descriptors on the command list using the passed-in setter function.
+			setFunc(d3d12GraphicsCommandList, rootIndex, mCurrentGPUDescriptorHandle);
+			// Offset current CPU and GPU descriptor handles.
+			mCurrentCPUDescriptorHandle.Offset(numSrcDescriptors, mDescriptorHandleIncrementSize);
+			mCurrentGPUDescriptorHandle.Offset(numSrcDescriptors, mDescriptorHandleIncrementSize);
+			mNumFreeHandles -= numSrcDescriptors;
+			// Flip the stale bit so the descriptor table is not recopied again unless it is updated with a new descriptor.
+			mStaleDescriptorTableBitMask ^= (1 << rootIndex);
+		}
+	}
+}
+
+void NFGE::Graphics::DynamicDescriptorHeap::CommitStagedDescriptorsForDraw(PipelineWorker& worker)
+{
+	CommitStagedDescriptors(worker, &ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
+}
+
+void NFGE::Graphics::DynamicDescriptorHeap::CommitStagedDescriptorsForDispatch(PipelineWorker& worker)
+{
+	CommitStagedDescriptors(worker, &ID3D12GraphicsCommandList::SetComputeRootDescriptorTable);
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE NFGE::Graphics::DynamicDescriptorHeap::CopyDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptor)
