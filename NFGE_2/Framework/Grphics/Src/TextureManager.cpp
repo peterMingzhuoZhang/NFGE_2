@@ -16,6 +16,7 @@
 #include "GenerateMipsPSO.h"
 #include "DynamicDescriptorHeap.h"
 #include "RootSignature.h"
+#include "PipelineWorker.h"
 using namespace NFGE::Graphics;
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -24,7 +25,7 @@ namespace
 {
 	std::unique_ptr<TextureManager> sInstance = nullptr;
 
-    void CopyTextureSubresource(Texture& texture, uint32_t firstSubresource, uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData);
+    void CopyTextureSubresource(Texture& texture, uint32_t firstSubresource, uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData, PipelineWorker& pipelineWorker);
 }
 
 void NFGE::Graphics::TextureManager::StaticInitialize(std::filesystem::path rootPath)
@@ -73,12 +74,12 @@ TextureId NFGE::Graphics::TextureManager::LoadTexture(std::filesystem::path file
 	auto [iter, success] = mInventory.insert({ hash, nullptr });
 	if (success)
 	{
-        auto commandList = NFGE::Graphics::GetCommandList(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE);
+        auto worker = NFGE::Graphics::GetWorker(WorkerType::Compute);
 		iter->second = std::make_unique<Texture>();
         if (isUsingRootPath)
-            LoadTextureFromFile(*iter->second.get(), mRootPath / filename, textureUsage, commandList);
+            LoadTextureFromFile(*iter->second.get(), mRootPath / filename, textureUsage, *worker);
         else
-            LoadTextureFromFile(*iter->second.get(), filename, textureUsage, commandList);
+            LoadTextureFromFile(*iter->second.get(), filename, textureUsage, *worker);
 	}
 	else
 	{
@@ -124,11 +125,11 @@ void* NFGE::Graphics::TextureManager::GetSprite(TextureId textureId)
 	return texture ? texture->GetD3D12Resource().Get() : nullptr;
 }
 
-void NFGE::Graphics::TextureManager::GenerateMips(Texture& texture, ComPtr<ID3D12GraphicsCommandList2> commandList)
+void NFGE::Graphics::TextureManager::GenerateMips(Texture& texture, PipelineWorker& pipelineWorker)
 {
     auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
 
-    ASSERT(commandList.Get()->GetType() != D3D12_COMMAND_LIST_TYPE_COPY, "[TextureManager] require a non-copy type commandList");
+    ASSERT(pipelineWorker.GetCommandListType() != D3D12_COMMAND_LIST_TYPE_COPY, "[TextureManager] require a non-copy type commandList");
 
     auto d3d12Resource = texture.GetD3D12Resource();
 
@@ -226,28 +227,28 @@ void NFGE::Graphics::TextureManager::GenerateMips(Texture& texture, ComPtr<ID3D1
         TrackObject(uavResource);
 
         // Add an aliasing barrier for the alias resource.
-        graphicSystem->AliasingBarrier(nullptr, aliasResource.Get());
+        pipelineWorker.AliasingBarrier(nullptr, aliasResource.Get());
 
         // Copy the original resource to the alias resource.
         // This ensures GPU validation.
-        graphicSystem->CopyResource(aliasResource.Get(), d3d12Resource.Get());
+        pipelineWorker.CopyResource(aliasResource.Get(), d3d12Resource.Get());
 
 
         // Add an aliasing barrier for the UAV compatible resource.
-        graphicSystem->AliasingBarrier(aliasResource.Get(), uavResource.Get());
+        pipelineWorker.AliasingBarrier(aliasResource.Get(), uavResource.Get());
     }
 
     // Generate mips with the UAV compatible resource.
-    GenerateMips_UAV(Texture(uavResource, texture.GetTextureUsage()), d3d12ResourceDesc.Format, commandList);
+    GenerateMips_UAV(Texture(uavResource, texture.GetTextureUsage()), d3d12ResourceDesc.Format, pipelineWorker);
 
     if (aliasResource)
     {
-        graphicSystem->AliasingBarrier(uavResource.Get(), aliasResource.Get());
+        pipelineWorker.AliasingBarrier(uavResource.Get(), aliasResource.Get());
         // Copy the alias resource back to the original resource.
-        graphicSystem->CopyResource(d3d12Resource.Get(), aliasResource.Get());
+        pipelineWorker.CopyResource(d3d12Resource.Get(), aliasResource.Get());
     }
 }
-void NFGE::Graphics::TextureManager::GenerateMips_UAV(const Texture& texture, DXGI_FORMAT format, ComPtr<ID3D12GraphicsCommandList2> commandList)
+void NFGE::Graphics::TextureManager::GenerateMips_UAV(const Texture& texture, DXGI_FORMAT format, PipelineWorker& pipelineWorker)
 {
     auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
     if (!mGenerateMipsPSO)
@@ -255,8 +256,8 @@ void NFGE::Graphics::TextureManager::GenerateMips_UAV(const Texture& texture, DX
         mGenerateMipsPSO = std::make_unique<GenerateMipsPSO>();
     }
 
-    commandList->SetPipelineState(mGenerateMipsPSO->GetPipelineState().Get());
-    graphicSystem->SetComputeRootSignature(mGenerateMipsPSO->GetRootSignature());
+    pipelineWorker.SetPipelineState(mGenerateMipsPSO->GetPipelineState().Get());
+    pipelineWorker.SetComputeRootSignature(mGenerateMipsPSO->GetRootSignature());
 
     GenerateMipsCB generateMipsCB;
     generateMipsCB.IsSRGB = Texture::IsSRGBFormat(format);
@@ -310,9 +311,9 @@ void NFGE::Graphics::TextureManager::GenerateMips_UAV(const Texture& texture, DX
         generateMipsCB.TexelSize.x = 1.0f / (float)dstWidth;
         generateMipsCB.TexelSize.y = 1.0f / (float)dstHeight;
 
-        graphicSystem->SetCompute32BitConstants(GenerateMips::GenerateMipsCB, generateMipsCB);
+        pipelineWorker.SetCompute32BitConstants(GenerateMips::GenerateMipsCB, generateMipsCB);
 
-        graphicSystem->SetShaderResourceView(GenerateMips::SrcMip, 0, texture, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, srcMip, 1, &srvDesc);
+        pipelineWorker.SetShaderResourceView(GenerateMips::SrcMip, 0, texture, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, srcMip, 1, &srvDesc);
 
         for (uint32_t mip = 0; mip < mipCount; ++mip)
         {
@@ -321,24 +322,24 @@ void NFGE::Graphics::TextureManager::GenerateMips_UAV(const Texture& texture, DX
             uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
             uavDesc.Texture2D.MipSlice = srcMip + mip + 1;
 
-            graphicSystem->SetUnorderedAccessView(GenerateMips::OutMip, mip, texture, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, srcMip + mip + 1, 1, &uavDesc);
+            pipelineWorker.SetUnorderedAccessView(GenerateMips::OutMip, mip, texture, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, srcMip + mip + 1, 1, &uavDesc);
         }
 
         // Pad any unused mip levels with a default UAV. Doing this keeps the DX12 runtime happy.
         if (mipCount < 4)
         {
-            graphicSystem->mDynamicDescriptorHeapKits[commandList->GetType()].mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(GenerateMips::OutMip, mipCount, 4 - mipCount, mGenerateMipsPSO->GetDefaultUAV());
+            pipelineWorker.mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(GenerateMips::OutMip, mipCount, 4 - mipCount, mGenerateMipsPSO->GetDefaultUAV());
         }
 
-        graphicSystem->Dispatch(NFGE::Math::Memory::DivideByMultiple(dstWidth, 8), NFGE::Math::Memory::DivideByMultiple(dstHeight, 8));
+        pipelineWorker.Dispatch(NFGE::Math::Memory::DivideByMultiple(dstWidth, 8), NFGE::Math::Memory::DivideByMultiple(dstHeight, 8));
 
-        graphicSystem->UAVBarrier(texture);
+        pipelineWorker.UAVBarrier(texture);
 
         srcMip += mipCount;
     }
 }
 
-void NFGE::Graphics::TextureManager::LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage textureUsage, ComPtr<ID3D12GraphicsCommandList2> commandlist)
+void NFGE::Graphics::TextureManager::LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage textureUsage, PipelineWorker& pipelineWorker)
 {
     auto device = NFGE::Graphics::GetDevice();
 
@@ -413,17 +414,17 @@ void NFGE::Graphics::TextureManager::LoadTextureFromFile(Texture& texture, const
         subresource.pData = pImages[i].pixels;
     }
 
-    CopyTextureSubresource(texture, 0, static_cast<uint32_t>(subresources.size()), subresources.data());
+    CopyTextureSubresource(texture, 0, static_cast<uint32_t>(subresources.size()), subresources.data(), pipelineWorker);
 
     if (subresources.size() < textureResource->GetDesc().MipLevels)
     {
-        GenerateMips(texture, commandlist);
+        GenerateMips(texture, pipelineWorker);
     }
 }
 
 namespace // Internal linkage function defination
 {
-    void CopyTextureSubresource(Texture& texture, uint32_t firstSubresource, uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData)
+    void CopyTextureSubresource(Texture& texture, uint32_t firstSubresource, uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData, PipelineWorker& pipelineWorker)
     {
         auto device = NFGE::Graphics::GetDevice();
         auto destinationResource = texture.GetD3D12Resource();
@@ -431,8 +432,8 @@ namespace // Internal linkage function defination
         {
             auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
             // Resource must be in the copy-destination state.
-            graphicSystem->TransitionBarrier(texture, D3D12_RESOURCE_STATE_COPY_DEST);
-            graphicSystem->FlushResourceBarriers();
+            pipelineWorker.TransitionBarrier(texture, D3D12_RESOURCE_STATE_COPY_DEST);
+            pipelineWorker.FlushResourceBarriers();
 
             UINT64 requiredSize = GetRequiredIntermediateSize(destinationResource.Get(), firstSubresource, numSubresources);
 

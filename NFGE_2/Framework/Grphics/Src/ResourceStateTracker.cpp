@@ -9,7 +9,6 @@
 #include "ResourceStateTracker.h"
 
 #include "d3dx12.h"
-#include "CommandList.h"
 
 using namespace NFGE::Graphics;
 

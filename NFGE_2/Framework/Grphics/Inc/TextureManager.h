@@ -13,6 +13,7 @@ namespace NFGE::Graphics
 
 	class GenerateMipsPSO;
 	class RootSignature;
+	class PipelineWorker;
 
 	class TextureManager
 	{
@@ -42,9 +43,9 @@ namespace NFGE::Graphics
 		std::unique_ptr<GenerateMipsPSO> mGenerateMipsPSO;
 		ID3D12RootSignature* mRootSignature;
 
-		void GenerateMips(Texture& texture, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList);
-		void GenerateMips_UAV(const Texture& texture, DXGI_FORMAT format, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList);
-		void LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage textureUsage, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandlist);
+		void GenerateMips(Texture& texture, PipelineWorker& pipelineWorker);
+		void GenerateMips_UAV(const Texture& texture, DXGI_FORMAT format, PipelineWorker& pipelineWorker);
+		void LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage textureUsage, PipelineWorker& pipelineWorker);
 		
 	};
 }

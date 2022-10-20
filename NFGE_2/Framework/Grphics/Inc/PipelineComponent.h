@@ -7,26 +7,48 @@
 #pragma once
 
 #include "RootSignature.h"
+#include "Mesh.h"
+#include "VertexBuffer.h"
+#include "IndexBuffer.h"
 
 namespace NFGE::Graphics
 {
+	class PipelineWorker;
 	// Component base style
-	struct PipelineComponent_Basic
+	struct PipelineComponent
 	{
-		// Vertex buffer
-		Microsoft::WRL::ComPtr<ID3D12Resource> vertexBuffer;
-		D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
-		// Index buffer
-		Microsoft::WRL::ComPtr<ID3D12Resource> indexBuffer;
-		D3D12_INDEX_BUFFER_VIEW indexBufferView;
-
-		RootSignature rootSignature;
-
-		Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;
+		bool isLoaded = false;
+		virtual void GetLoad(PipelineWorker& worker) = 0;
+		virtual void GetBind(PipelineWorker& worker) = 0;
 	};
 
-	struct PipelineComponent_SingleTexture
+	//template <typename T>
+	struct PipelineComponent_Basic : public PipelineComponent
 	{
+		//using MeshType = T;
+
+		MeshPX mMesh;
+		// Vertex buffer
+		VertexBuffer mVertexBuffer;
+		// Index buffer
+		IndexBuffer mIndexBuffer;
+
+		RootSignature mRootSignature;
+
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPipelineState;
+		
+		void GetLoad(PipelineWorker& worker) override;
+		void GetBind(PipelineWorker& worker) override;
+	};
+
+	struct PipelineComponent_SingleTexture : public PipelineComponent
+	{
+		std::filesystem::path filename;
 		size_t mTexture;
+		uint32_t mRootParamterIndex;
+		uint32_t mDescriptorOffset;
+
+		void GetLoad(PipelineWorker& worker) override;
+		void GetBind(PipelineWorker& worker) override;
 	};
 }

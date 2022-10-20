@@ -37,10 +37,6 @@ namespace NFGE::Graphics {
         * Since the DynamicDescriptorHeap can't know which function will be used, it must
         * be passed as an argument to the function.
         */
-        void CommitStagedDescriptors(std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_DESCRIPTOR_HANDLE)> setFunc);
-        void CommitStagedDescriptorsForDraw();
-        void CommitStagedDescriptorsForDispatch();
-
         void CommitStagedDescriptors(PipelineWorker& worker, std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_DESCRIPTOR_HANDLE)> setFunc);
         void CommitStagedDescriptorsForDraw(PipelineWorker& worker);
         void CommitStagedDescriptorsForDispatch(PipelineWorker& worker);
@@ -60,7 +56,7 @@ namespace NFGE::Graphics {
         *
         * @return The GPU visible descriptor.
         */
-        D3D12_GPU_DESCRIPTOR_HANDLE CopyDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptor);
+        D3D12_GPU_DESCRIPTOR_HANDLE CopyDescriptor(PipelineWorker& worker, D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptor);
 
         /**
         * Parse the root signature to determine which root parameters contain

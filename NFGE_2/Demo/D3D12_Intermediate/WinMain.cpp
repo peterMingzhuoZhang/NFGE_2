@@ -17,14 +17,18 @@ void Load()
     myCamera.SetDirection({ 0.0f,0.0f,1.0f });
     myCamera.SetPosition(0.0f);
 
-    myBall.Load(NFGE::Graphics::MeshBuilder::CreateSpherePX(100, 100, 10), &myLight);
-    myBall.mPipelineComp_Texture.mTexture = NFGE::Graphics::TextureManager::Get()->LoadTexture("texcoord.png", NFGE::Graphics::TextureUsage::Albedo, true);
+    myBall.Prepare(NFGE::Graphics::MeshBuilder::CreateSpherePX(100, 100, 10), &myLight);
     myBall.mMeshContext.position = { 0.0f,0.0f, 40.0f };
 
-    auto commandQueue = NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_COMPUTE);
-    auto commandList = NFGE::Graphics::GraphicsSystem::Get()->GetCurrentCommandList();
-    auto fenceValue = commandQueue->ExecuteCommandList(commandList);
-    commandQueue->WaitForFenceValue(fenceValue);
+    auto copyWorker = NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType::Copy);
+    copyWorker->BeginWork();
+    copyWorker->ProcessWork();
+    copyWorker->EndWork();
+
+    auto computeWorker = NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType::Compute);
+    computeWorker->BeginWork();
+    computeWorker->ProcessWork();
+    computeWorker->EndWork();
 }
 
 void Render()

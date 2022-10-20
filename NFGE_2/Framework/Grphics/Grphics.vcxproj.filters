@@ -87,9 +87,6 @@
     <ClInclude Include="Inc\RootSignature.h">
       <Filter>Inc\NFGE_D3d12</Filter>
     </ClInclude>
-    <ClInclude Include="Inc\CommandList.h">
-      <Filter>Inc\NFGE_D3d12</Filter>
-    </ClInclude>
     <ClInclude Include="Inc\ResourceStateTracker.h">
       <Filter>Inc\NFGE_D3d12</Filter>
     </ClInclude>
@@ -173,9 +170,6 @@
     <ClCompile Include="Src\RootSignature.cpp">
       <Filter>Src\NFGE_D3D12</Filter>
     </ClCompile>
-    <ClCompile Include="Src\CommandList.cpp">
-      <Filter>Src\NFGE_D3D12</Filter>
-    </ClCompile>
     <ClCompile Include="Src\ResourceStateTracker.cpp">
       <Filter>Src\NFGE_D3D12</Filter>
     </ClCompile>
@@ -213,6 +207,9 @@
       <Filter>Src\Camera</Filter>
     </ClCompile>
     <ClCompile Include="Src\PipelineWorker.cpp">
+      <Filter>Src\RenderObject</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\PipelineComponent.cpp">
       <Filter>Src\RenderObject</Filter>
     </ClCompile>
   </ItemGroup>

@@ -23,10 +23,15 @@
 
 using namespace NFGE::Graphics;
 
-NFGE::Graphics::PipelineWorker::PipelineWorker(WokerType type)
+NFGE::Graphics::PipelineWorker::PipelineWorker(WorkerType type)
 	:mType(type)
 {
     Initialize();
+}
+
+NFGE::Graphics::PipelineWorker::~PipelineWorker()
+{
+    Terminate();
 }
 
 void NFGE::Graphics::PipelineWorker::Initialize()
@@ -58,9 +63,23 @@ void NFGE::Graphics::PipelineWorker::Terminate()
     }
 }
 
+void NFGE::Graphics::PipelineWorker::RegisterComponent(PipelineComponent* component)
+{
+    mTrackedPipelineComponents.push_back(component);
+}
+
 void NFGE::Graphics::PipelineWorker::BeginWork()
 {
     mCurrentCommandList = mCommandQueue->GetCommandList();
+    NFGE::Graphics::GraphicsSystem::Get()->SetCurrentCommandList(mCurrentCommandList);
+}
+
+void NFGE::Graphics::PipelineWorker::ProcessWork()
+{
+    for (auto& piplineComponent : mTrackedPipelineComponents)
+    {
+        piplineComponent->GetLoad(*this);
+    }
 }
 
 void NFGE::Graphics::PipelineWorker::EndWork()
@@ -212,10 +231,12 @@ void NFGE::Graphics::PipelineWorker::CopyTextureSubresource(Texture& texture, ui
 
         // Create a temporary (intermediate) resource for uploading the subresources
         ComPtr<ID3D12Resource> intermediateResource;
+        auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+        auto resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(requiredSize);
         ThrowIfFailed(device->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+            &heapProperties,
             D3D12_HEAP_FLAG_NONE,
-            &CD3DX12_RESOURCE_DESC::Buffer(requiredSize),
+            &resourceDesc,
             D3D12_RESOURCE_STATE_GENERIC_READ,
             nullptr,
             IID_PPV_ARGS(&intermediateResource)
@@ -577,10 +598,12 @@ void NFGE::Graphics::PipelineWorker::CopyBuffer(Buffer& buffer, size_t numElemen
     }
     else
     {
+        auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+        auto resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, flags);
         ThrowIfFailed(device->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+            &heapProperties,
             D3D12_HEAP_FLAG_NONE,
-            &CD3DX12_RESOURCE_DESC::Buffer(bufferSize, flags),
+            &resourceDesc,
             D3D12_RESOURCE_STATE_COMMON,
             nullptr,
             IID_PPV_ARGS(&d3d12Resource)));
@@ -592,10 +615,12 @@ void NFGE::Graphics::PipelineWorker::CopyBuffer(Buffer& buffer, size_t numElemen
         {
             // Create an upload resource to use as an intermediate buffer to copy the buffer resource 
             ComPtr<ID3D12Resource> uploadResource;
+            auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+            auto resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
             ThrowIfFailed(device->CreateCommittedResource(
-                &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+                &heapProperties,
                 D3D12_HEAP_FLAG_NONE,
-                &CD3DX12_RESOURCE_DESC::Buffer(bufferSize),
+                &resourceDesc,
                 D3D12_RESOURCE_STATE_GENERIC_READ,
                 nullptr,
                 IID_PPV_ARGS(&uploadResource)));

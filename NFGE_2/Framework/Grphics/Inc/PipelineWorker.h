@@ -18,8 +18,11 @@ namespace NFGE::Graphics
     class VertexBuffer;
     class IndexBuffer;
     class Buffer;
+    class PipelineComponent;
+    class DynamicDescriptorHeap;
+    class UploadBuffer;
 
-	enum class WokerType
+	enum class WorkerType
 	{
 		Direct = D3D12_COMMAND_LIST_TYPE_DIRECT,
 		Compute = D3D12_COMMAND_LIST_TYPE_COMPUTE,
@@ -29,17 +32,25 @@ namespace NFGE::Graphics
 	class PipelineWorker 
 	{
 	public:
-        PipelineWorker(WokerType type);
+        PipelineWorker(WorkerType type);
+        ~PipelineWorker();
 
         void Initialize();
         void Terminate();
 
+        void RegisterComponent(PipelineComponent* component);
         void BeginWork();
+        void ProcessWork();
         void EndWork();
 
         D3D12_COMMAND_LIST_TYPE GetCommandListType() const
         {
             return static_cast<D3D12_COMMAND_LIST_TYPE>(mType);
+        }
+
+        CommandQueue* GetCommandQueue() const
+        {
+            return mCommandQueue.get();
         }
 
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> GetGraphicsCommandList() const
@@ -195,6 +206,7 @@ namespace NFGE::Graphics
 		void Reset();
 		void Close();
 	private:
+        friend class TextureManager;
 		void TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object);
 		void TrackResource(const Resource& res);
         void TrackResource(ID3D12Resource* res);
@@ -205,7 +217,7 @@ namespace NFGE::Graphics
         // Binds the current descriptor heaps to the command list.
         void BindDescriptorHeaps();
 
-		WokerType mType;
+		WorkerType mType;
 		std::unique_ptr<CommandQueue> mCommandQueue{ nullptr };
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> mCurrentCommandList{ nullptr };
         ID3D12RootSignature* mCurrentRootSignature{ nullptr };
@@ -219,6 +231,9 @@ namespace NFGE::Graphics
 		std::unique_ptr<ResourceStateTracker> mResourceStateTracker;
 		using TrackedObjects = std::vector < Microsoft::WRL::ComPtr<ID3D12Object> >;
 		TrackedObjects mTrackedObjects;
+
+        using TrackedPipelineComponents = std::vector<PipelineComponent*>;
+        TrackedPipelineComponents mTrackedPipelineComponents;
 	};
 	
 }

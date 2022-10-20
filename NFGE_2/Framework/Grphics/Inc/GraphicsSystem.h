@@ -27,6 +27,9 @@ namespace NFGE::Graphics {
 	class ResourceStateTracker;
 	class Resource;
 	class RootSignature;
+	class PipelineWorker;
+	class PipelineComponent;
+	enum class WorkerType;
 	class GraphicsSystem
 	{
 	public:
@@ -78,84 +81,16 @@ namespace NFGE::Graphics {
 		uint32_t GetBackBufferWidth() const;
 		uint32_t GetBackBufferHeight() const;
 
-	//private:
-		void TransitionBarrier(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateAfter, UINT subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool flushBarriers = false);
-		void TransitionBarrier(const Resource& resource, D3D12_RESOURCE_STATES stateAfter, UINT subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool flushBarriers = false);
-
-		void UAVBarrier(ID3D12Resource* resource, bool flushBarriers = false);
-		void UAVBarrier(const Resource& resource, bool flushBarriers = false);
-
-		void AliasingBarrier(ID3D12Resource* beforeResource, ID3D12Resource* afterResource, bool flushBarriers = false);
-		void AliasingBarrier(const Resource& beforeResource, const Resource& afterResource, bool flushBarriers = false);
-
-		void FlushResourceBarriers();
-
-		void CopyResource(ID3D12Resource* dstRes, ID3D12Resource* srcRes);
-		void CopyResource(Resource& dstRes, const Resource& srcRes);
-
-		void SetGraphicsRootSignature(const RootSignature& rootSignature);
-		void SetComputeRootSignature(const RootSignature& rootSignature);
-
-		void SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitiveTopology);
-
-		void SetCompute32BitConstants(uint32_t rootParameterIndex, uint32_t numConstants, const void* constants);
-		template<typename T>
-		void SetCompute32BitConstants(uint32_t rootParameterIndex, const T& constants)
-		{
-			static_assert(sizeof(T) % sizeof(uint32_t) == 0, "Size of type must be a multiple of 4 bytes");
-			SetCompute32BitConstants(rootParameterIndex, sizeof(T) / sizeof(uint32_t), &constants);
-		}
-		void SetShaderResourceView(
-			uint32_t rootParameterIndex,
-			uint32_t descriptorOffset,
-			const Resource& resource,
-			D3D12_RESOURCE_STATES stateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
-			D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
-			UINT firstSubresource = 0,
-			UINT numSubresources = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-			const D3D12_SHADER_RESOURCE_VIEW_DESC* srv = nullptr
-		);
-		void SetUnorderedAccessView(
-			uint32_t rootParameterIndex,
-			uint32_t descrptorOffset,
-			const Resource&,
-			D3D12_RESOURCE_STATES stateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-			UINT firstSubresource = 0,
-			UINT numSubresources = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-			const D3D12_UNORDERED_ACCESS_VIEW_DESC* uav = nullptr
-		);
-
-
-		// Draw geometry.
-		void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t startVertex = 0, uint32_t startInstance = 0);
-		void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t startIndex = 0, int32_t baseVertex = 0, uint32_t startInstance = 0);
-
-		// Dispatch a compute shader.
-		void Dispatch(uint32_t numGroupsX, uint32_t numGroupsY = 1, uint32_t numGroupsZ = 1);
-
-		void SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, ID3D12DescriptorHeap* heap);
 		void Reset();
-		
-		struct DynamicDescriptorHeapKit
-		{
-			std::unique_ptr<DynamicDescriptorHeap> mDynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
-			ID3D12DescriptorHeap* mDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
-			DynamicDescriptorHeapKit() {
-				for (int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
-				{
-					mDynamicDescriptorHeap[i] = std::make_unique<DynamicDescriptorHeap>(static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(i));
-					mDescriptorHeaps[i] = nullptr;
-				}
-			}
-		};
-		std::vector<DynamicDescriptorHeapKit> mDynamicDescriptorHeapKits;
+
 	private:
 		
 		static const uint8_t sNumFrames = 3;
 
 		friend LRESULT CALLBACK GraphicsSystemMessageHandler(HWND window, UINT message, WPARAM wPrarm, LPARAM lParam);
 		friend ComPtr<ID3D12Device2> GetDevice();
-		friend CommandQueue* GetCommandQueue(D3D12_COMMAND_LIST_TYPE type); // TODO use woker instead
+		friend void RegisterPipelineComponent(NFGE::Graphics::WorkerType type, PipelineComponent* component);
+		friend PipelineWorker* GetWorker(NFGE::Graphics::WorkerType type);
 		friend uint8_t GetFrameCount();
 		friend void Flush();
 
@@ -173,21 +108,17 @@ namespace NFGE::Graphics {
 		D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRenderTargetView() const;
 		D3D12_CPU_DESCRIPTOR_HANDLE GetDepthStenciltView() const;
 
-		void TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object);
-		void TrackResource(ID3D12Resource* res);
-		void TrackResource(const Resource& res);
-
 		// Synchronization functions
 		void Flush();
 
 		// DirectX 12 Objects
 		// Allocation and Control
 		ComPtr<ID3D12Device2> mDevice{ nullptr };
-		ComPtr<ID3D12GraphicsCommandList2> mCurrentCommandList{ nullptr }; 
-		ID3D12RootSignature* mCurrentRootSignature;
-		std::unique_ptr<CommandQueue> mDirectCommandQueue{ nullptr };
-		std::unique_ptr<CommandQueue> mComputeCommandQueue{ nullptr };
-		std::unique_ptr<CommandQueue> mCopyCommandQueue{ nullptr };
+		ComPtr<ID3D12GraphicsCommandList2> mCurrentCommandList{ nullptr };
+
+		std::unique_ptr<PipelineWorker> mDirectWorker{ nullptr };
+		std::unique_ptr<PipelineWorker> mComputeWorker{ nullptr };
+		std::unique_ptr<PipelineWorker> mCopyWorker{ nullptr };
 
 		// SwapChian
 		ComPtr<IDXGISwapChain4> mSwapChain{ nullptr };
@@ -199,13 +130,8 @@ namespace NFGE::Graphics {
 		UINT mRTVDescriptorSize{ 0 };
 		Microsoft::WRL::ComPtr<ID3D12Resource> mDepthBuffer;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDSVHeap;
-		// Resource created in an upload heap. Useful for drawing of dynamic geometry
-		// or for uploading constant buffer data that changes every draw call.
-		std::unique_ptr<UploadBuffer> mUploadBuffer;
 
 		std::unique_ptr<DescriptorAllocator> mDescriptorAllocators[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
-
-		
 
 		D3D12_VIEWPORT mViewport{};
 		D3D12_RECT mScissorRect{};
@@ -221,11 +147,6 @@ namespace NFGE::Graphics {
 		bool mFullScreen{ false };
 		RECT mWindowRect{};
 		SIZE_T mMaxVideoMemory{ 0 };
-
-		
-		std::unique_ptr<ResourceStateTracker> mResourceStateTracker;
-		using TrackedObjects = std::vector < Microsoft::WRL::ComPtr<ID3D12Object> >;
-		TrackedObjects mTrackedObjects;
 	};
 
 } // namespace NFGE::Graphics

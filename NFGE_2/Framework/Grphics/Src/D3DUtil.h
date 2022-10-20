@@ -5,10 +5,13 @@ namespace NFGE::Graphics
 	class Texture;
 	class CommandQueue;
 	class DescriptorAllocation;
+	class PipelineComponent;
+	enum class WorkerType;
+	class PipelineWorker;
 
 	Microsoft::WRL::ComPtr<ID3D12Device2> GetDevice();
-	CommandQueue* GetCommandQueue(D3D12_COMMAND_LIST_TYPE type);
-	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> GetCommandList(D3D12_COMMAND_LIST_TYPE type);
+	void RegisterPipelineComponent(NFGE::Graphics::WorkerType type, PipelineComponent* component);
+	PipelineWorker* GetWorker(NFGE::Graphics::WorkerType type);
 	uint8_t GetFrameCount();
 	void Flush();
 
@@ -16,8 +19,6 @@ namespace NFGE::Graphics
 	// Release stale descriptors. This should only be called with a completed frame counter.
 	void ReleaseStaleDescriptors(uint64_t finishedFrame);
 	UINT GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type);
-
-	void TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object);
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> GetVectexLayout(uint32_t vertexFormat);
 }

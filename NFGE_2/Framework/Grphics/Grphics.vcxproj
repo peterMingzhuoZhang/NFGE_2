@@ -138,7 +138,6 @@
     <ClInclude Include="Inc\Buffer.h" />
     <ClInclude Include="Inc\Camera.h" />
     <ClInclude Include="Inc\Colors.h" />
-    <ClInclude Include="Inc\CommandList.h" />
     <ClInclude Include="Inc\CommandQueue.h" />
     <ClInclude Include="Inc\Common.h" />
     <ClInclude Include="Inc\d3dx12.h" />
@@ -172,7 +171,6 @@
   <ItemGroup>
     <ClCompile Include="Src\Buffer.cpp" />
     <ClCompile Include="Src\Camera.cpp" />
-    <ClCompile Include="Src\CommandList.cpp" />
     <ClCompile Include="Src\CommandQueue.cpp" />
     <ClCompile Include="Src\D3DUtil.cpp" />
     <ClCompile Include="Src\DynamicDescriptorHeap.cpp" />
@@ -184,6 +182,7 @@
     <ClCompile Include="Src\GraphicsSystem.cpp" />
     <ClCompile Include="Src\IndexBuffer.cpp" />
     <ClCompile Include="Src\Mesh.cpp" />
+    <ClCompile Include="Src\PipelineComponent.cpp" />
     <ClCompile Include="Src\PipelineWorker.cpp" />
     <ClCompile Include="Src\Precompiled.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

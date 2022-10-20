@@ -6,6 +6,8 @@
 #include "DescriptorAllocation.h"
 #include "DescriptorAllocator.h"
 #include "VertexType.h"
+#include "PipelineComponent.h"
+#include "PipelineWorker.h"
 
 //#include "Texture.h"
 
@@ -14,36 +16,48 @@ Microsoft::WRL::ComPtr<ID3D12Device2> NFGE::Graphics::GetDevice()
 	return NFGE::Graphics::GraphicsSystem::Get()->mDevice;
 }
 
-NFGE::Graphics::CommandQueue* NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST_TYPE type)
+void NFGE::Graphics::RegisterPipelineComponent(NFGE::Graphics::WorkerType type, PipelineComponent* component)
 {
-    CommandQueue* commandQueue = nullptr;
     auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
     switch (type)
     {
-    case D3D12_COMMAND_LIST_TYPE_DIRECT:
-        commandQueue = graphicSystem->mDirectCommandQueue.get();
+    case NFGE::Graphics::WorkerType::Direct:
+        graphicSystem->mDirectWorker->RegisterComponent(component);
         break;
-    case D3D12_COMMAND_LIST_TYPE_COMPUTE:
-        commandQueue = graphicSystem->mComputeCommandQueue.get();
+    case NFGE::Graphics::WorkerType::Compute:
+        graphicSystem->mComputeWorker->RegisterComponent(component);
         break;
-    case D3D12_COMMAND_LIST_TYPE_COPY:
-        commandQueue = graphicSystem->mCopyCommandQueue.get();
+    case NFGE::Graphics::WorkerType::Copy:
+        graphicSystem->mCopyWorker->RegisterComponent(component);
         break;
     default:
-        ASSERT(false, "Invalid command queue type.");
+        ASSERT(false, "Invalid command worker type.");
+        break;
     }
-
-    ASSERT(commandQueue, "CommandQueue should not be nullptr.");
-    //graphicSystem->mCurrentCommandList = commandQueue->GetCommandList();
-    return commandQueue;
 }
 
-Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> NFGE::Graphics::GetCommandList(D3D12_COMMAND_LIST_TYPE type)// TODO: remove this
+NFGE::Graphics::PipelineWorker* NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType type)
 {
-    auto commandQueue = GetCommandQueue(type);
-    auto commandList = commandQueue->GetCommandList();
-    NFGE::Graphics::GraphicsSystem::Get()->SetCurrentCommandList(commandList);
-    return commandList;
+    PipelineWorker* worker = nullptr;
+    auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
+    switch (type)
+    {
+    case NFGE::Graphics::WorkerType::Direct:
+        worker = graphicSystem->mDirectWorker.get();
+        break;
+    case NFGE::Graphics::WorkerType::Compute:
+        worker = graphicSystem->mComputeWorker.get();
+        break;
+    case NFGE::Graphics::WorkerType::Copy:
+        worker = graphicSystem->mCopyWorker.get();
+        break;
+    default:
+        ASSERT(false, "Invalid command worker type.");
+        break;
+    }
+
+    ASSERT(worker, "CommandQueue should not be nullptr.");
+    return worker;
 }
 
 uint8_t  NFGE::Graphics::GetFrameCount()
@@ -73,11 +87,6 @@ void NFGE::Graphics::ReleaseStaleDescriptors(uint64_t finishedFrame)
 UINT NFGE::Graphics::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type)
 {
     return NFGE::Graphics::GraphicsSystem::Get()->mDevice->GetDescriptorHandleIncrementSize(type);
-}
-
-void NFGE::Graphics::TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object)
-{
-    NFGE::Graphics::GraphicsSystem::Get()->TrackObject(object);
 }
 
 std::vector<D3D12_INPUT_ELEMENT_DESC> NFGE::Graphics::GetVectexLayout(uint32_t vertexFormat)

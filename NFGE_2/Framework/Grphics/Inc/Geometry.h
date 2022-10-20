@@ -17,7 +17,7 @@ namespace NFGE::Graphics
 	class GeometryPX
 	{
 	public:
-		MeshPX mMesh;
+		
 		PipelineComponent_Basic mPipelineComp_Basic;
 		PipelineComponent_SingleTexture mPipelineComp_Texture;
 
@@ -35,7 +35,7 @@ namespace NFGE::Graphics
 		} mMeshContext;
 
 	public:
-		void Load(MeshPX mesh, DirectionalLight* directionLight);
+		void Prepare(MeshPX mesh, DirectionalLight* directionLight);
 		void UnLoad();
 		void Update(float deltaTime);
 		void Render(const NFGE::Graphics::Camera& camera);
