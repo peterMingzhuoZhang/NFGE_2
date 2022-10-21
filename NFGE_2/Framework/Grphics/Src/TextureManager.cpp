@@ -24,8 +24,6 @@ using namespace Microsoft::WRL;
 namespace
 {
 	std::unique_ptr<TextureManager> sInstance = nullptr;
-
-    void CopyTextureSubresource(Texture& texture, uint32_t firstSubresource, uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData, PipelineWorker& pipelineWorker);
 }
 
 void NFGE::Graphics::TextureManager::StaticInitialize(std::filesystem::path rootPath)
@@ -193,7 +191,7 @@ void NFGE::Graphics::TextureManager::GenerateMips(Texture& texture, PipelineWork
 
         // Make sure the heap does not go out of scope until the command list
         // is finished executing on the command queue.
-        TrackObject(heap);
+        pipelineWorker.TrackObject(heap);
 
         // Create a placed resource that matches the description of the 
         // original resource. This resource is used to copy the original 
@@ -209,7 +207,7 @@ void NFGE::Graphics::TextureManager::GenerateMips(Texture& texture, PipelineWork
 
         ResourceStateTracker::AddGlobalResourceState(aliasResource.Get(), D3D12_RESOURCE_STATE_COMMON);
         // Ensure the scope of the alias resource.
-        TrackObject(aliasResource);
+        pipelineWorker.TrackObject(aliasResource);
 
         // Create a UAV compatible resource in the same heap as the alias
         // resource.
@@ -224,7 +222,7 @@ void NFGE::Graphics::TextureManager::GenerateMips(Texture& texture, PipelineWork
 
         ResourceStateTracker::AddGlobalResourceState(uavResource.Get(), D3D12_RESOURCE_STATE_COMMON);
         // Ensure the scope of the UAV compatible resource.
-        TrackObject(uavResource);
+        pipelineWorker.TrackObject(uavResource);
 
         // Add an aliasing barrier for the alias resource.
         pipelineWorker.AliasingBarrier(nullptr, aliasResource.Get());
@@ -422,39 +420,37 @@ void NFGE::Graphics::TextureManager::LoadTextureFromFile(Texture& texture, const
     }
 }
 
-namespace // Internal linkage function defination
+
+void NFGE::Graphics::TextureManager::CopyTextureSubresource(Texture& texture, uint32_t firstSubresource, uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData, PipelineWorker& pipelineWorker)
 {
-    void CopyTextureSubresource(Texture& texture, uint32_t firstSubresource, uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData, PipelineWorker& pipelineWorker)
-    {
-        auto device = NFGE::Graphics::GetDevice();
-        auto destinationResource = texture.GetD3D12Resource();
-        if (destinationResource)
-        {
-            auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
-            // Resource must be in the copy-destination state.
-            pipelineWorker.TransitionBarrier(texture, D3D12_RESOURCE_STATE_COPY_DEST);
-            pipelineWorker.FlushResourceBarriers();
+	auto device = NFGE::Graphics::GetDevice();
+	auto destinationResource = texture.GetD3D12Resource();
+	if (destinationResource)
+	{
+		auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
+		// Resource must be in the copy-destination state.
+		pipelineWorker.TransitionBarrier(texture, D3D12_RESOURCE_STATE_COPY_DEST);
+		pipelineWorker.FlushResourceBarriers();
 
-            UINT64 requiredSize = GetRequiredIntermediateSize(destinationResource.Get(), firstSubresource, numSubresources);
+		UINT64 requiredSize = GetRequiredIntermediateSize(destinationResource.Get(), firstSubresource, numSubresources);
 
-            // Create a temporary (intermediate) resource for uploading the subresources
-            Microsoft::WRL::ComPtr<ID3D12Resource> intermediateResource;
-            auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-            auto resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(requiredSize);
-            ThrowIfFailed(device->CreateCommittedResource(
-                &heapProperties,
-                D3D12_HEAP_FLAG_NONE,
-                &resourceDesc,
-                D3D12_RESOURCE_STATE_GENERIC_READ,
-                nullptr,
-                IID_PPV_ARGS(&intermediateResource)
-            ));
+		// Create a temporary (intermediate) resource for uploading the subresources
+		Microsoft::WRL::ComPtr<ID3D12Resource> intermediateResource;
+		auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+		auto resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(requiredSize);
+		ThrowIfFailed(device->CreateCommittedResource(
+			&heapProperties,
+			D3D12_HEAP_FLAG_NONE,
+			&resourceDesc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&intermediateResource)
+		));
 
-            UpdateSubresources(graphicSystem->GetCurrentCommandList().Get(), destinationResource.Get(), intermediateResource.Get(), 0, firstSubresource, numSubresources, subresourceData);
+		UpdateSubresources(graphicSystem->GetCurrentCommandList().Get(), destinationResource.Get(), intermediateResource.Get(), 0, firstSubresource, numSubresources, subresourceData);
 
-            TrackObject(intermediateResource);
-            TrackObject(destinationResource);
-        }
-    }
-    
+		pipelineWorker.TrackObject(intermediateResource);
+		pipelineWorker.TrackObject(destinationResource);
+	}
 }
+    

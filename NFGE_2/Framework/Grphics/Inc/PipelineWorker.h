@@ -18,7 +18,7 @@ namespace NFGE::Graphics
     class VertexBuffer;
     class IndexBuffer;
     class Buffer;
-    class PipelineComponent;
+    struct PipelineComponent;
     class DynamicDescriptorHeap;
     class UploadBuffer;
 

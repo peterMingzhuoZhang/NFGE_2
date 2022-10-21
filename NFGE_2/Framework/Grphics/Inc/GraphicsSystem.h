@@ -28,7 +28,7 @@ namespace NFGE::Graphics {
 	class Resource;
 	class RootSignature;
 	class PipelineWorker;
-	class PipelineComponent;
+	struct PipelineComponent;
 	enum class WorkerType;
 	class GraphicsSystem
 	{

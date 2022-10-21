@@ -5,7 +5,7 @@ namespace NFGE::Graphics
 	class Texture;
 	class CommandQueue;
 	class DescriptorAllocation;
-	class PipelineComponent;
+	struct PipelineComponent;
 	enum class WorkerType;
 	class PipelineWorker;
 

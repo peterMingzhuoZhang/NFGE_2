@@ -190,7 +190,7 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 	mHeight = (uint32_t)(mWindowRect.bottom - mWindowRect.top);
 	mWidth = (uint32_t)(mWindowRect.right - mWindowRect.left);
 	HWND windowHandle = window.GetWindowHandle();
-	mSwapChain = CreateSwapChain(windowHandle, mDirectWorker->GetCommandQueue(), mWidth, mHeight, sNumFrames);
+	mSwapChain = CreateSwapChain(windowHandle, mDirectWorker->GetCommandQueue()->GetD3D12CommandQueue(), mWidth, mHeight, sNumFrames);
 
 	mCurrentBackBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 

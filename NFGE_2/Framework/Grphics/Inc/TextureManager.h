@@ -46,6 +46,6 @@ namespace NFGE::Graphics
 		void GenerateMips(Texture& texture, PipelineWorker& pipelineWorker);
 		void GenerateMips_UAV(const Texture& texture, DXGI_FORMAT format, PipelineWorker& pipelineWorker);
 		void LoadTextureFromFile(Texture& texture, const std::wstring& fileName, TextureUsage textureUsage, PipelineWorker& pipelineWorker);
-		
+		void CopyTextureSubresource(Texture& texture, uint32_t firstSubresource, uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData, PipelineWorker& pipelineWorker);
 	};
 }
