@@ -16,7 +16,7 @@ using namespace NFGE::Graphics;
 using namespace NFGE::Math;
 using namespace Microsoft::WRL;
 
-void NFGE::Graphics::GeometryPX::Prepare(MeshPX mesh, DirectionalLight* directionLight)
+void NFGE::Graphics::GeometryPX::Prepare(MeshPX mesh, DirectionalLight* directionLight, const std::filesystem::path& texturePath)
 {
 	mMeshContext.mLight = directionLight;
 
@@ -56,7 +56,7 @@ void NFGE::Graphics::GeometryPX::Prepare(MeshPX mesh, DirectionalLight* directio
 
 	mPipelineComp_Texture.mRootParamterIndex = 1;
 	mPipelineComp_Texture.mDescriptorOffset = 0;
-	mPipelineComp_Texture.filename = "texcoord.png";
+	mPipelineComp_Texture.filename = texturePath;
 	NFGE::Graphics::RegisterPipelineComponent(WorkerType::Compute, &mPipelineComp_Texture);
 }
 

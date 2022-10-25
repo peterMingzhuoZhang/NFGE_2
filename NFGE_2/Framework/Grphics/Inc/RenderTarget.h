@@ -43,8 +43,18 @@ namespace NFGE::Graphics
         // The texture will be copied into the texture array.
         void AttachTexture(AttachmentPoint attachmentPoint, const Texture& texture);
         const Texture& GetTexture(AttachmentPoint attachmentPoint) const;
+        DirectX::XMUINT2 GetSize() const;
+        uint32_t GetWidth() const;
+        uint32_t GetHeight() const;
+
+        // Get a viewport for this render target.
+        // The scale and bias parameters can be used to specify a split-screen
+        // viewport (the bias parameter is normalized in the range [0...1]).
+        // By default, a fullscreen viewport is returned.
+        D3D12_VIEWPORT GetViewport(DirectX::XMFLOAT2 scale = { 1.0f, 1.0f }, DirectX::XMFLOAT2 bias = { 0.0f, 0.0f }, float minDepth = 0.0f, float maxDepth = 1.0f) const;
 
         // Resize all of the textures associated with the render target.
+        void Resize(DirectX::XMUINT2 size);
         void Resize(uint32_t width, uint32_t height);
 
         // Get a list of the textures attached to the render target.
@@ -63,6 +73,7 @@ namespace NFGE::Graphics
     private:
 
         std::vector<Texture> mTextures;
+        DirectX::XMUINT2 mSize;
     };
 }
 

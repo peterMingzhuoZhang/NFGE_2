@@ -10,6 +10,8 @@
 #include "CommandQueue.h"
 #include "DescriptorAllocation.h"
 #include "DynamicDescriptorHeap.h" // TODO:: remove this dependicy 
+#include "RenderTarget.h"
+#include "Texture.h"
 
 namespace NFGE::Graphics {
 	using namespace Microsoft::WRL;
@@ -81,6 +83,9 @@ namespace NFGE::Graphics {
 		uint32_t GetBackBufferWidth() const;
 		uint32_t GetBackBufferHeight() const;
 
+		const RenderTarget& GetRenderTarget();
+		void BindMasterRenderTarget();
+
 		void Reset();
 
 	private:
@@ -101,12 +106,8 @@ namespace NFGE::Graphics {
 		
 		friend void TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object);
 
-		void UpdateRenderTargetViews(ComPtr<ID3D12Device2> device, ComPtr<IDXGISwapChain4> swapChain, ComPtr<ID3D12DescriptorHeap> descriptorHeap);
-		void UpdateDepthStencilView(ComPtr<ID3D12Device2> device, ComPtr<ID3D12DescriptorHeap> descriptorHeap);
+		void UpdateRenderTargetViews();
 		UINT GetCurrentBackBufferIndex() const { return mCurrentBackBufferIndex; };
-		ComPtr<ID3D12Resource> GetCurrentBackBuffer() const { return mBackBuffers[mCurrentBackBufferIndex]; };
-		D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRenderTargetView() const;
-		D3D12_CPU_DESCRIPTOR_HANDLE GetDepthStenciltView() const;
 
 		// Synchronization functions
 		void Flush();
@@ -124,12 +125,9 @@ namespace NFGE::Graphics {
 		ComPtr<IDXGISwapChain4> mSwapChain{ nullptr };
 
 		// Memory
-		ComPtr<ID3D12Resource> mBackBuffers[sNumFrames]{ nullptr };
+		Texture mBackBuffers[sNumFrames];
 		UINT mCurrentBackBufferIndex{ 0 };
-		ComPtr<ID3D12DescriptorHeap> mRTVDescriptorHeap{ nullptr };
-		UINT mRTVDescriptorSize{ 0 };
-		Microsoft::WRL::ComPtr<ID3D12Resource> mDepthBuffer;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDSVHeap;
+		RenderTarget mMasterRenderTarget;
 
 		std::unique_ptr<DescriptorAllocator> mDescriptorAllocators[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 

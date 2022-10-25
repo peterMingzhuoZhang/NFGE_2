@@ -194,20 +194,12 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 
 	mCurrentBackBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 
-	mRTVDescriptorHeap = CreateDescriptorHeap(mDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, sNumFrames);
-	mRTVDescriptorSize = mDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	for (int i = 0; i < sNumFrames; ++i)
+	{
+		mBackBuffers[i].SetName(L"Backbuffer[" + std::to_wstring(i) + L"]");
+	}
 
-	UpdateRenderTargetViews(mDevice, mSwapChain, mRTVDescriptorHeap);
 
-	// Create the descriptor heap for the depth-stencil view.
-	mDSVHeap = CreateDescriptorHeap(mDevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV,1);
-	UpdateDepthStencilView(mDevice, mDSVHeap);
-
-	mViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(mWidth), static_cast<float>(mHeight));
-	mScissorRect = CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX);
-
-	//mFence = CreateFence(mDevice);
-	//mFenceEvent = CreateEventHandle();
 
 	mFullScreen = fullscreen;
 
@@ -219,6 +211,9 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 	{
 		mDescriptorAllocators[i] = std::make_unique<DescriptorAllocator>(static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(i));
 	}
+
+	UpdateRenderTargetViews();
+	mScissorRect = CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX);
 }
 
 void GraphicsSystem::Terminate()
@@ -228,7 +223,6 @@ void GraphicsSystem::Terminate()
 
 	mDevice.Reset();
 	mSwapChain.Reset();
-	mRTVDescriptorHeap.Reset();
 	//mFence.Reset();
 	//CloseHandle(mFenceEvent);
 
@@ -243,45 +237,28 @@ void GraphicsSystem::Terminate()
 
 void GraphicsSystem::BeginRender(RenderType type)
 {
-	auto currentBackbuffer = mBackBuffers[mCurrentBackBufferIndex];
 	auto worker = NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType::Direct);
 	worker->BeginWork();
 
 	// Clear the render target.
 	{
-		TransitionResource(mCurrentCommandList, currentBackbuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-		//D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-		//ShiftRTVDescriptorHandle(rtvHandle, mCurrentBackBufferIndex, mRTVDescriptorSize);
-		//NFGE::Graphics::GraphicsSystem::Get()->TransitionBarrier(currentBackbuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,true);
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
-			mCurrentBackBufferIndex, mRTVDescriptorSize);
-		auto dsv = mDSVHeap->GetCPUDescriptorHandleForHeapStart();
-
-		mCurrentCommandList->ClearRenderTargetView(rtvHandle, &mClearColor.x, 0, nullptr);
-		mCurrentCommandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		BindMasterRenderTarget();
+		worker->ClearTexture(mMasterRenderTarget.GetTexture(AttachmentPoint::Color0), &mClearColor.x);
+		worker->ClearDepthStencilTexture(mMasterRenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
 	}
 
-	auto rtv = GetCurrentRenderTargetView();
-	auto dsv = GetDepthStenciltView();
-
-	mCurrentCommandList->RSSetViewports(1, &mViewport);
-	mCurrentCommandList->RSSetScissorRects(1, &mScissorRect);
-	mCurrentCommandList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
+	worker->SetRenderTarget(mMasterRenderTarget);
+	worker->SetViewport(mMasterRenderTarget.GetViewport());
+	worker->SetScissorRect(mScissorRect);
 }
 
 void GraphicsSystem::EndRender(RenderType type)
 {
 	auto worker = NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType::Direct);
-	auto currentBackbuffer = mBackBuffers[mCurrentBackBufferIndex];
+	auto& currentBackbuffer = mBackBuffers[mCurrentBackBufferIndex];
 
-	//D3D12_RESOURCE_BARRIER barrier = CreateTransitionBarrier(currentBackbuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-	//mCurrentCommandList->ResourceBarrier(1, &barrier);
-	TransitionResource(mCurrentCommandList, currentBackbuffer,
-		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-	//NFGE::Graphics::GraphicsSystem::Get()->TransitionBarrier(currentBackbuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, true);
-
-	//ID3D12CommandList* const commandLists[] = { mCurrentCommandList.Get()};
+	
+	worker->TransitionBarrier(currentBackbuffer, D3D12_RESOURCE_STATE_PRESENT);
 	worker->EndWork();
 
 	uint32_t syncInterval = mVSync ? 1 : 0;
@@ -355,10 +332,12 @@ void NFGE::Graphics::GraphicsSystem::Resize(uint32_t width, uint32_t height)
 		// are not being referenced by an in-flight command list.
 		Flush();
 
+		mMasterRenderTarget.AttachTexture(Color0, Texture());
 		for (int i = 0; i < sNumFrames; ++i)
 		{
 			// Any references to the back buffers must be released
 			// before the swap chain can be resized.
+			ResourceStateTracker::RemoveGlobalResourceState(mBackBuffers[i].GetD3D12Resource().Get());
 			mBackBuffers[i].Reset();
 			mFrameFenceValues[i] = mFrameFenceValues[mCurrentBackBufferIndex];
 		}
@@ -370,16 +349,7 @@ void NFGE::Graphics::GraphicsSystem::Resize(uint32_t width, uint32_t height)
 
 		mCurrentBackBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 
-		UpdateRenderTargetViews(mDevice, mSwapChain, mRTVDescriptorHeap);
-
-		UpdateDepthStencilView(mDevice, mDSVHeap);
-
-		mViewport.Width = (float)mWidth ;
-		mViewport.Height = (float)mHeight;
-		mViewport.MinDepth = 0.0f;
-		mViewport.MaxDepth = 1.0f;
-		mViewport.TopLeftX = 0;
-		mViewport.TopLeftY = 0;
+		UpdateRenderTargetViews();
 	}
 }
 
@@ -393,67 +363,33 @@ uint32_t NFGE::Graphics::GraphicsSystem::GetBackBufferHeight() const
 	return mHeight;
 }
 
+const RenderTarget& NFGE::Graphics::GraphicsSystem::GetRenderTarget()
+{
+	return mMasterRenderTarget;
+}
+
+void NFGE::Graphics::GraphicsSystem::BindMasterRenderTarget()
+{
+	mMasterRenderTarget.AttachTexture(AttachmentPoint::Color0, mBackBuffers[mCurrentBackBufferIndex]);
+}
+
 void NFGE::Graphics::GraphicsSystem::Reset()
 {
 
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE NFGE::Graphics::GraphicsSystem::GetCurrentRenderTargetView() const
+void NFGE::Graphics::GraphicsSystem::UpdateRenderTargetViews()
 {
-	return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
-		mCurrentBackBufferIndex, mRTVDescriptorSize);
-}
-
-D3D12_CPU_DESCRIPTOR_HANDLE NFGE::Graphics::GraphicsSystem::GetDepthStenciltView() const
-{
-	return mDSVHeap->GetCPUDescriptorHandleForHeapStart();
-}
-
-void NFGE::Graphics::GraphicsSystem::UpdateRenderTargetViews(Microsoft::WRL::ComPtr<ID3D12Device2> device, Microsoft::WRL::ComPtr<IDXGISwapChain4> swapChain, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap)
-{
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
-
 	for (int i = 0; i < sNumFrames; ++i)
 	{
-		//ComPtr<ID3D12Resource> backBuffer;
-		ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&mBackBuffers[i])));
+		ComPtr<ID3D12Resource> backBuffer;
+		ThrowIfFailed(mSwapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer)));
 
-		device->CreateRenderTargetView(mBackBuffers[i].Get(), nullptr, rtvHandle);
+		ResourceStateTracker::AddGlobalResourceState(backBuffer.Get(), D3D12_RESOURCE_STATE_COMMON);
 
-		// set offset
-		ASSERT(mRTVDescriptorSize != 0, "Unexpect RTVDescriptorSize.");
-		rtvHandle.ptr += mRTVDescriptorSize;
+		mBackBuffers[i].SetD3D12Resource(backBuffer);
+		mBackBuffers[i].CreateViews();
 	}
-}
-
-void NFGE::Graphics::GraphicsSystem::UpdateDepthStencilView(ComPtr<ID3D12Device2> device, ComPtr<ID3D12DescriptorHeap> descriptorHeap)
-{
-	// Create a depth buffer.
-	D3D12_CLEAR_VALUE optimizedClearValue = {};
-	optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
-	optimizedClearValue.DepthStencil = { 1.0f, 0 };
-
-	CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
-	CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, mWidth, mHeight,
-		1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
-	ThrowIfFailed(device->CreateCommittedResource(
-		&heapProperties,
-		D3D12_HEAP_FLAG_NONE,
-		&resourceDesc,
-		D3D12_RESOURCE_STATE_DEPTH_WRITE,
-		&optimizedClearValue,
-		IID_PPV_ARGS(&mDepthBuffer)
-	));
-
-	// Update the depth-stencil view.
-	D3D12_DEPTH_STENCIL_VIEW_DESC dsv = {};
-	dsv.Format = DXGI_FORMAT_D32_FLOAT;
-	dsv.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-	dsv.Texture2D.MipSlice = 0;
-	dsv.Flags = D3D12_DSV_FLAG_NONE;
-
-	device->CreateDepthStencilView(mDepthBuffer.Get(), &dsv,
-		descriptorHeap->GetCPUDescriptorHandleForHeapStart());
 }
 
 void NFGE::Graphics::GraphicsSystem::Flush()

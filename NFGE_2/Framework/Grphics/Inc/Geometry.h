@@ -35,7 +35,7 @@ namespace NFGE::Graphics
 		} mMeshContext;
 
 	public:
-		void Prepare(MeshPX mesh, DirectionalLight* directionLight);
+		void Prepare(MeshPX mesh, DirectionalLight* directionLight, const std::filesystem::path& texturePath);
 		void UnLoad();
 		void Update(float deltaTime);
 		void Render(const NFGE::Graphics::Camera& camera);

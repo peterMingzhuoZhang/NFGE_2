@@ -17,7 +17,7 @@ void Load()
     myCamera.SetDirection({ 0.0f,0.0f,1.0f });
     myCamera.SetPosition(0.0f);
 
-    myBall.Prepare(NFGE::Graphics::MeshBuilder::CreateSpherePX(100, 100, 10), &myLight);
+    myBall.Prepare(NFGE::Graphics::MeshBuilder::CreateSpherePX(100, 100, 10), &myLight, "texcoord.png");
     myBall.mMeshContext.position = { 0.0f,0.0f, 40.0f };
 
     auto copyWorker = NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType::Copy);
