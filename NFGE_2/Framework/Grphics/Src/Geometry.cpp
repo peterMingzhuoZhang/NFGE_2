@@ -74,7 +74,6 @@ void NFGE::Graphics::GeometryPX::Render(const NFGE::Graphics::Camera& camera)
 	auto worker = NFGE::Graphics::GetWorker(WorkerType::Direct);
 
 	mPipelineComp_Basic.GetBind(*worker);
-	mPipelineComp_Texture.GetBind(*worker);
 
 	Matrix4 matrices[3];
 	matrices[0] = Matrix4::sScaling(mMeshContext.scale) * MatrixRotationQuaternion(mMeshContext.rotation) * Matrix4::sTranslation(mMeshContext.position);
@@ -85,6 +84,7 @@ void NFGE::Graphics::GeometryPX::Render(const NFGE::Graphics::Camera& camera)
 	matrices[2] = Transpose(matrices[2]);
 	worker->SetGraphics32BitConstants(0, sizeof(Matrix4) * 3 / 4, &matrices);
 	// Bind texture
+	mPipelineComp_Texture.GetBind(*worker);
 	
 
 	worker->DrawIndexed(mPipelineComp_Basic.mMesh.GetIndices().size(), 1, 0, 0, 0);

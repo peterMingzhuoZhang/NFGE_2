@@ -204,7 +204,7 @@ namespace NFGE::Graphics
 		void FlushResourceBarriers();
 		void ReleaseTrackedObjects();
 		void Reset();
-		void Close();
+        bool Close(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> pendingBarrierCommandList);
 	private:
         friend class TextureManager;
 		void TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object);

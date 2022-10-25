@@ -412,7 +412,7 @@ void NFGE::Graphics::TextureManager::LoadTextureFromFile(Texture& texture, const
         subresource.pData = pImages[i].pixels;
     }
 
-    CopyTextureSubresource(texture, 0, static_cast<uint32_t>(subresources.size()), subresources.data(), pipelineWorker);
+    pipelineWorker.CopyTextureSubresource(texture, 0, static_cast<uint32_t>(subresources.size()), subresources.data());
 
     if (subresources.size() < textureResource->GetDesc().MipLevels)
     {

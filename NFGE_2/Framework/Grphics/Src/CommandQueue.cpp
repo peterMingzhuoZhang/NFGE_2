@@ -7,6 +7,8 @@
 
 #include "Precompiled.h"
 #include "CommandQueue.h"
+#include "PipelineWorker.h"
+#include "ResourceStateTracker.h"
 
 using namespace NFGE::Graphics;
 using namespace Microsoft::WRL;
@@ -73,19 +75,37 @@ Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> NFGE::Graphics::CommandQueue:
 	return commandList;
 }
 
-uint64_t NFGE::Graphics::CommandQueue::ExecuteCommandList(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList)
+uint64_t NFGE::Graphics::CommandQueue::ExecuteCommandList(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList, PipelineWorker& worker)
 {
-	commandList->Close();
+	// Dealing with pending barriers
+	ResourceStateTracker::Lock();
+	auto pendingBarriersCommandList = GetCommandList();
+	ID3D12CommandAllocator* commandAllocator_pending;
+	UINT dataSize_pending = sizeof(commandAllocator_pending);
+	ThrowIfFailed(pendingBarriersCommandList->GetPrivateData(__uuidof(ID3D12CommandAllocator), &dataSize_pending, &commandAllocator_pending));
+	bool hasPendingBarriers = worker.Close(pendingBarriersCommandList);
+	pendingBarriersCommandList->Close();
+	if (hasPendingBarriers)
+	{
+		ID3D12CommandList* const commandLists[] = { pendingBarriersCommandList.Get() };
+		mD3d12CommandQueue->ExecuteCommandLists(1, commandLists);
+		uint64_t fenceValue_pending = Signal();
+
+		mCommandAllocatorQueue.emplace(CommandAllocatorEntry{ fenceValue_pending, Microsoft::WRL::ComPtr<ID3D12CommandAllocator>(commandAllocator_pending) });
+		mCommandListQueue.push(pendingBarriersCommandList);
+	}
+	commandAllocator_pending->Release();
+	ResourceStateTracker::Unlock();
 
 	ID3D12CommandAllocator* commandAllocator;
 	UINT dataSize = sizeof(commandAllocator);
 	ThrowIfFailed(commandList->GetPrivateData(__uuidof(ID3D12CommandAllocator), &dataSize, &commandAllocator));
 
-	ID3D12CommandList* const ppCommandLists[] = {
+	ID3D12CommandList* const commandLists[] = {
 		commandList.Get()
 	};
 
-	mD3d12CommandQueue->ExecuteCommandLists(1, ppCommandLists);
+	mD3d12CommandQueue->ExecuteCommandLists(1, commandLists);
 	uint64_t fenceValue = Signal();
 
 	mCommandAllocatorQueue.emplace(CommandAllocatorEntry{ fenceValue, Microsoft::WRL::ComPtr<ID3D12CommandAllocator>(commandAllocator) });

@@ -10,6 +10,7 @@
 #include <queue>
 
 namespace NFGE::Graphics {
+    class PipelineWorker;
     class CommandQueue
     {
     public:
@@ -21,7 +22,7 @@ namespace NFGE::Graphics {
 
         // Execute a command list.
         // Returns the fence value to wait for for this command list.
-        uint64_t ExecuteCommandList(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList);
+        uint64_t ExecuteCommandList(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList, PipelineWorker& worker);
 
         uint64_t Signal();
         bool IsFenceComplete(uint64_t fenceValue);

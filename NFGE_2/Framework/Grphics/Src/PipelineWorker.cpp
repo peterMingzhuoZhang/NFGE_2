@@ -85,9 +85,13 @@ void NFGE::Graphics::PipelineWorker::ProcessWork()
 void NFGE::Graphics::PipelineWorker::EndWork()
 {
     ASSERT(mCurrentCommandList, "Current PipleineWorker is not Begin work.");
-    auto signal = mCommandQueue->ExecuteCommandList(mCurrentCommandList);
+
+    auto signal = mCommandQueue->ExecuteCommandList(mCurrentCommandList, *this);
     mCommandQueue->WaitForFenceValue(signal);
     mCurrentCommandList = nullptr;
+    mTrackedPipelineComponents.clear();
+    Reset();
+    
 }
 
 void NFGE::Graphics::PipelineWorker::TransitionBarrier(const Resource& resource, D3D12_RESOURCE_STATES stateAfter, UINT subresource, bool flushBarriers)
@@ -563,11 +567,19 @@ void NFGE::Graphics::PipelineWorker::Reset()
     mCurrentRootSignature = nullptr;
 }
 
-void NFGE::Graphics::PipelineWorker::Close()
+bool NFGE::Graphics::PipelineWorker::Close(Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> pendingBarrierCommandList)
 {
     FlushResourceBarriers();
+
     ASSERT(mCurrentCommandList, "Current PipleineWorker is not Begin work.");
     mCurrentCommandList->Close();
+
+    // Flush pending resource barriers.
+    uint32_t numPendingBarriers = mResourceStateTracker->FlushPendingResourceBarriers(pendingBarrierCommandList);
+    // Commit the final resource state to the global state.
+    mResourceStateTracker->CommitFinalResourceStates();
+
+    return numPendingBarriers > 0;
 }
 
 void NFGE::Graphics::PipelineWorker::TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object)
