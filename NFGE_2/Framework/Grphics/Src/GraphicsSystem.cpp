@@ -198,8 +198,8 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 	{
 		mBackBuffers[i].SetName(L"Backbuffer[" + std::to_wstring(i) + L"]");
 	}
-
-
+	
+	
 
 	mFullScreen = fullscreen;
 
@@ -213,6 +213,7 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 	}
 
 	UpdateRenderTargetViews();
+	UpdateDepthStencilView();
 	mScissorRect = CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX);
 }
 
@@ -264,9 +265,13 @@ void GraphicsSystem::EndRender(RenderType type)
 	uint32_t syncInterval = mVSync ? 1 : 0;
 	uint32_t presentFlag = 0; // set up present flags if needed
 	ThrowIfFailed(mSwapChain->Present(syncInterval, presentFlag));
+	
+	mFrameFenceValues[mCurrentBackBufferIndex] = worker->Signal();
+	mFrameCountValues[mCurrentBackBufferIndex] = mFrameCount;
 
 	mCurrentBackBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 
+	ReleaseStaleDescriptors(mFrameCountValues[mCurrentBackBufferIndex]);
 }
 
 void GraphicsSystem::ToggleFullscreen(HWND windowHandle)
@@ -350,6 +355,7 @@ void NFGE::Graphics::GraphicsSystem::Resize(uint32_t width, uint32_t height)
 		mCurrentBackBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 
 		UpdateRenderTargetViews();
+		UpdateDepthStencilView();
 	}
 }
 
@@ -370,7 +376,13 @@ const RenderTarget& NFGE::Graphics::GraphicsSystem::GetRenderTarget()
 
 void NFGE::Graphics::GraphicsSystem::BindMasterRenderTarget()
 {
-	mMasterRenderTarget.AttachTexture(AttachmentPoint::Color0, mBackBuffers[mCurrentBackBufferIndex]);
+	for (size_t i = 0; i < 100; i++)
+	{
+		mMasterRenderTarget.AttachTexture(AttachmentPoint::Color0, mBackBuffers[mCurrentBackBufferIndex]);
+		mMasterRenderTarget.AttachTexture(AttachmentPoint::DepthStencil, mDepthStencil);
+	}
+	//mMasterRenderTarget.AttachTexture(AttachmentPoint::Color0, mBackBuffers[mCurrentBackBufferIndex]);
+	//mMasterRenderTarget.AttachTexture(AttachmentPoint::DepthStencil, mDepthStencil);
 }
 
 void NFGE::Graphics::GraphicsSystem::Reset()
@@ -390,6 +402,22 @@ void NFGE::Graphics::GraphicsSystem::UpdateRenderTargetViews()
 		mBackBuffers[i].SetD3D12Resource(backBuffer);
 		mBackBuffers[i].CreateViews();
 	}
+}
+
+void NFGE::Graphics::GraphicsSystem::UpdateDepthStencilView()
+{
+	auto depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, mWidth, mHeight);
+	depthDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+	D3D12_CLEAR_VALUE depthClearValue;
+	depthClearValue.Format = depthDesc.Format;
+	depthClearValue.DepthStencil = { 1.0f, 0 };
+
+	mDepthStencil = Texture(depthDesc, &depthClearValue,
+		TextureUsage::Depth,
+		L"Depth Render Target");
+
+	//mMasterRenderTarget.AttachTexture(AttachmentPoint::DepthStencil, mDepthStencil);
 }
 
 void NFGE::Graphics::GraphicsSystem::Flush()

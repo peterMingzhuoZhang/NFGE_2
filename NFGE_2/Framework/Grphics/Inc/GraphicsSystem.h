@@ -88,6 +88,8 @@ namespace NFGE::Graphics {
 
 		void Reset();
 
+		void IncrementFrameCount() { ++mFrameCount; };
+
 	private:
 		
 		static const uint8_t sNumFrames = 3;
@@ -107,6 +109,7 @@ namespace NFGE::Graphics {
 		friend void TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object);
 
 		void UpdateRenderTargetViews();
+		void UpdateDepthStencilView();
 		UINT GetCurrentBackBufferIndex() const { return mCurrentBackBufferIndex; };
 
 		// Synchronization functions
@@ -126,6 +129,7 @@ namespace NFGE::Graphics {
 
 		// Memory
 		Texture mBackBuffers[sNumFrames];
+		Texture mDepthStencil;
 		UINT mCurrentBackBufferIndex{ 0 };
 		RenderTarget mMasterRenderTarget;
 
@@ -136,6 +140,7 @@ namespace NFGE::Graphics {
 
 		// Synchronization
 		uint64_t mFrameFenceValues[sNumFrames]{ 0 };
+		uint64_t mFrameCountValues[sNumFrames]{ 0 };
 
 		// Graphic controls
 		Color mClearColor{ 0.23f,0.34f,0.17f,0.0f };
@@ -145,6 +150,7 @@ namespace NFGE::Graphics {
 		bool mFullScreen{ false };
 		RECT mWindowRect{};
 		SIZE_T mMaxVideoMemory{ 0 };
+		uint64_t mFrameCount = 0;
 	};
 
 } // namespace NFGE::Graphics

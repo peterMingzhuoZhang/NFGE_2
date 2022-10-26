@@ -360,6 +360,7 @@ void NFGE::Graphics::PipelineWorker::SetViewports(const std::vector<D3D12_VIEWPO
 
 void NFGE::Graphics::PipelineWorker::SetScissorRect(const D3D12_RECT& scissorRect)
 {
+    SetScissorRects({ scissorRect });
 }
 
 void NFGE::Graphics::PipelineWorker::SetScissorRects(const std::vector<D3D12_RECT>& scissorRects)
@@ -538,6 +539,11 @@ void NFGE::Graphics::PipelineWorker::Dispatch(uint32_t numGroupsX, uint32_t numG
 
     ASSERT(mCurrentCommandList, "Current PipleineWorker is not Begin work.");
     mCurrentCommandList->Dispatch(numGroupsX, numGroupsY, numGroupsZ);
+}
+
+uint64_t NFGE::Graphics::PipelineWorker::Signal()
+{
+    return mCommandQueue->Signal();
 }
 
 void NFGE::Graphics::PipelineWorker::FlushResourceBarriers()

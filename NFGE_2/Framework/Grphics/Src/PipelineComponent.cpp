@@ -97,13 +97,13 @@ void NFGE::Graphics::PipelineComponent_SingleTexture::GetLoad(PipelineWorker& wo
 {
 	ASSERT(!isLoaded, "Loading component second time is not allowed.");
 
-	mTexture = NFGE::Graphics::TextureManager::Get()->LoadTexture(filename, NFGE::Graphics::TextureUsage::Albedo, true);
+	mTextureId = NFGE::Graphics::TextureManager::Get()->LoadTexture(filename, NFGE::Graphics::TextureUsage::Albedo, true);
 
 	isLoaded = true;
 }
 
 void NFGE::Graphics::PipelineComponent_SingleTexture::GetBind(PipelineWorker& worker)
 {
-	Texture* texture = NFGE::Graphics::TextureManager::Get()->GetTexture(mTexture);
+	Texture* texture = NFGE::Graphics::TextureManager::Get()->GetTexture(mTextureId);
 	worker.SetShaderResourceView(mRootParamterIndex, mDescriptorOffset, *texture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }

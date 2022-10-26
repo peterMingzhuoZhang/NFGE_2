@@ -84,6 +84,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         // Render
         {
             auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
+            graphicSystem->IncrementFrameCount();
             graphicSystem->BeginRender(NFGE::Graphics::RenderType::Direct);
             Render();
             //NFGE::Graphics::Texture* texture = NFGE::Graphics::TextureManager::Get()->GetTexture(myBall.mMeshRenderStrcuture.mTexture_0);

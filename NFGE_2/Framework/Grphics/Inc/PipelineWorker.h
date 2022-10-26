@@ -201,6 +201,7 @@ namespace NFGE::Graphics
 		// Dispatch a compute shader.
 		void Dispatch(uint32_t numGroupsX, uint32_t numGroupsY = 1, uint32_t numGroupsZ = 1);
 
+        uint64_t Signal();
 		void FlushResourceBarriers();
 		void ReleaseTrackedObjects();
 		void Reset();
