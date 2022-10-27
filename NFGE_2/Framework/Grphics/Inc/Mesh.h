@@ -59,6 +59,7 @@ namespace NFGE::Graphics
 		uint32_t GetVertexCount() const { return mNumVertices; }
 		uint32_t GetIndexCount() const { return mNumIndices; }
 
+		uint32_t GetVertexFormat() const { return VertexType::Format; }
 
 	public:
 		std::vector<VertexType> mVertices;

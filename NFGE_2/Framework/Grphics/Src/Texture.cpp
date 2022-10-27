@@ -45,7 +45,7 @@ Texture::Texture(const Texture& copy)
     CreateViews();
 }
 
-Texture::Texture(Texture&& copy)
+Texture::Texture(Texture&& copy) noexcept
     : Resource(copy)
 {
     CreateViews();
@@ -59,7 +59,7 @@ Texture& Texture::operator=(const Texture& other)
 
     return *this;
 }
-Texture& Texture::operator=(Texture&& other)
+Texture& Texture::operator=(Texture&& other) noexcept
 {
     Resource::operator=(other);
 
@@ -70,6 +70,19 @@ Texture& Texture::operator=(Texture&& other)
 
 Texture::~Texture()
 {}
+
+void NFGE::Graphics::Texture::Reset()
+{
+    Resource::Reset();
+    mShaderResourceViews.clear();
+    mUnorderedAccessViews.clear();
+
+    mRenderTargetView.~DescriptorAllocation();
+    mDepthStencilView.~DescriptorAllocation();
+
+    mWidth = 0;
+    mHeight = 0;
+}
 
 void Texture::Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize)
 {
@@ -177,8 +190,8 @@ void Texture::CreateViews()
             device->CreateDepthStencilView(mD3d12Resource.Get(), nullptr, mDepthStencilView.GetDescriptorHandle());
         }
 
-        mWidth = desc.Width;
-        mHeight = desc.Height;
+        mWidth = static_cast<uint32_t>(desc.Width);
+        mHeight = static_cast<uint32_t>(desc.Height);
     }
 
     std::lock_guard<std::mutex> lock(mShaderResourceViewsMutex);
@@ -399,6 +412,7 @@ DXGI_FORMAT Texture::GetTypelessFormat(DXGI_FORMAT format)
     case DXGI_FORMAT_R16_SNORM:
     case DXGI_FORMAT_R16_SINT:
         typelessFormat = DXGI_FORMAT_R16_TYPELESS;
+        break;
     case DXGI_FORMAT_R8_UNORM:
     case DXGI_FORMAT_R8_UINT:
     case DXGI_FORMAT_R8_SNORM:

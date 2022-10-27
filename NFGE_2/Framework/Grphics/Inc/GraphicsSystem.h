@@ -105,8 +105,6 @@ namespace NFGE::Graphics {
 		// Release stale descriptors. This should only be called with a completed frame counter.
 		friend void ReleaseStaleDescriptors(uint64_t finishedFrame);
 		friend UINT GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type);
-		
-		friend void TrackObject(Microsoft::WRL::ComPtr<ID3D12Object> object);
 
 		void UpdateRenderTargetViews();
 		void UpdateDepthStencilView();

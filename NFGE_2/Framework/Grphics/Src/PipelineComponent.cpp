@@ -13,7 +13,8 @@
 using namespace NFGE::Graphics;
 using namespace Microsoft::WRL;
 
-void NFGE::Graphics::PipelineComponent_Basic::GetLoad(PipelineWorker& worker)
+template<typename T>
+void NFGE::Graphics::PipelineComponent_Basic<T>::GetLoad(PipelineWorker& worker)
 {
 	ASSERT(!isLoaded, "Loading component second time is not allowed.");
 	auto device = NFGE::Graphics::GetDevice();
@@ -28,7 +29,7 @@ void NFGE::Graphics::PipelineComponent_Basic::GetLoad(PipelineWorker& worker)
 	ComPtr<ID3DBlob> vertexShaderBlob = nullptr;
 	ID3DBlob* shaderErrorBlob = nullptr;
 	HRESULT hr = D3DCompileFromFile(
-		L"../../Assets/Shaders/TextureMesh.hlsl",
+		mShaderFilename.c_str(),
 		nullptr, nullptr,
 		"VS",
 		"vs_5_1", 0, 0, // which compiler
@@ -40,7 +41,7 @@ void NFGE::Graphics::PipelineComponent_Basic::GetLoad(PipelineWorker& worker)
 	// Load and compile the pixel shader.
 	ComPtr<ID3DBlob> pixelShaderBlob = nullptr;
 	hr = D3DCompileFromFile(
-		L"../../Assets/Shaders/TextureMesh.hlsl",
+		mShaderFilename.c_str(),
 		nullptr, nullptr,
 		"PS",
 		"ps_5_1", 0, 0, // which compiler
@@ -49,7 +50,7 @@ void NFGE::Graphics::PipelineComponent_Basic::GetLoad(PipelineWorker& worker)
 	ASSERT(SUCCEEDED(hr), "Failed to compile pixel shader. Error: %s", (const char*)shaderErrorBlob->GetBufferPointer());
 	SafeRelease(shaderErrorBlob);
 
-	auto vertexLayout = NFGE::Graphics::GetVectexLayout(VertexPX::Format);
+	auto vertexLayout = NFGE::Graphics::GetVectexLayout(mMesh.GetVertexFormat());
 
 	struct PipelineStateStream
 	{
@@ -82,8 +83,8 @@ void NFGE::Graphics::PipelineComponent_Basic::GetLoad(PipelineWorker& worker)
 	isLoaded = true;
 }
 
-
-void NFGE::Graphics::PipelineComponent_Basic::GetBind(PipelineWorker& worker)
+template<typename T>
+void NFGE::Graphics::PipelineComponent_Basic<T>::GetBind(PipelineWorker& worker)
 {
 	worker.SetPipelineState(mPipelineState);
 	worker.SetGraphicsRootSignature(mRootSignature);
@@ -92,6 +93,10 @@ void NFGE::Graphics::PipelineComponent_Basic::GetBind(PipelineWorker& worker)
 	worker.SetIndexBuffer(mIndexBuffer);
 
 }
+
+// Explicit instantiations
+template struct PipelineComponent_Basic<MeshPC>;
+template struct PipelineComponent_Basic<MeshPX>;
 
 void NFGE::Graphics::PipelineComponent_SingleTexture::GetLoad(PipelineWorker& worker)
 {

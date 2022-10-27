@@ -39,6 +39,8 @@ namespace NFGE::Graphics
         RenderTarget& operator=(const RenderTarget& other) = default;
         RenderTarget& operator=(RenderTarget&& other) = default;
 
+        void Reset();
+
         // Attach a texture to the render target.
         // The texture will be copied into the texture array.
         void AttachTexture(AttachmentPoint attachmentPoint, const Texture& texture);

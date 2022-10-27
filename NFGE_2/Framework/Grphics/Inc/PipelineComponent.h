@@ -22,18 +22,20 @@ namespace NFGE::Graphics
 		virtual void GetBind(PipelineWorker& worker) = 0;
 	};
 
-	//template <typename T>
+	template <typename T>
 	struct PipelineComponent_Basic : public PipelineComponent
 	{
-		//using MeshType = T;
+		using MeshType = T;
 
-		MeshPX mMesh;
+		MeshType mMesh;
 		// Vertex buffer
 		VertexBuffer mVertexBuffer;
 		// Index buffer
 		IndexBuffer mIndexBuffer;
 
 		RootSignature mRootSignature;
+
+		std::wstring mShaderFilename;
 
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPipelineState;
 		

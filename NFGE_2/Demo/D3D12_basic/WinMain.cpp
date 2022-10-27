@@ -63,8 +63,9 @@ bool Load(int width, int height)
 {
     auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
     auto device = NFGE::Graphics::GetDevice();
-    auto commandQueue = NFGE::Graphics::GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
-    auto commandList = commandQueue->GetCommandList();
+    auto worker = NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType::Copy);
+    worker->BeginWork();
+    auto commandList = worker->GetGraphicsCommandList();;
 
     // Upload vertex buffer data.
     ComPtr<ID3D12Resource> intermediateVertexBuffer;
@@ -185,8 +186,9 @@ bool Load(int width, int height)
     };
     ThrowIfFailed(device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&pipelineState)));
 
-    auto fenceValue = commandQueue->ExecuteCommandList(commandList);
-    commandQueue->WaitForFenceValue(fenceValue);
+   
+    worker->EndWork();
+    
 
     return true;
 }

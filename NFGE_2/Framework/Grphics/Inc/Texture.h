@@ -34,12 +34,14 @@ namespace NFGE::Graphics {
             const std::wstring& name = L"");
 
         Texture(const Texture& copy);
-        Texture(Texture&& copy);
+        Texture(Texture&& copy) noexcept;
 
         Texture& operator=(const Texture& other);
-        Texture& operator=(Texture&& other);
+        Texture& operator=(Texture&& other) noexcept;
 
         virtual ~Texture();
+
+        virtual void Reset();
 
         TextureUsage GetTextureUsage() const { return mTextureUsage; }
 
@@ -129,8 +131,8 @@ namespace NFGE::Graphics {
 
         TextureUsage mTextureUsage;
 
-        uint32_t mWidth;
-        uint32_t mHeight;
+        uint32_t mWidth{ 0 };
+        uint32_t mHeight{ 0 };
     };
 }
 

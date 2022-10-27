@@ -5,7 +5,8 @@
 
 NFGE::Graphics::DirectionalLight myLight;
 NFGE::Graphics::Camera myCamera;
-NFGE::Graphics::GeometryPX myBall;
+NFGE::Graphics::GeometryPX myBallPX;
+NFGE::Graphics::GeometryPC myBallPC;
 
 void Load()
 {
@@ -17,8 +18,10 @@ void Load()
     myCamera.SetDirection({ 0.0f,0.0f,1.0f });
     myCamera.SetPosition(0.0f);
 
-    myBall.Prepare(NFGE::Graphics::MeshBuilder::CreateSpherePX(100, 100, 10), &myLight, "texcoord.png");
-    myBall.mMeshContext.position = { 0.0f,0.0f, 40.0f };
+    myBallPX.Prepare(NFGE::Graphics::MeshBuilder::CreateSpherePX(100, 100, 10), &myLight, "texcoord.png");
+    myBallPX.mMeshContext.position = { -15.0f,0.0f, 40.0f };
+    myBallPC.Prepare(NFGE::Graphics::MeshBuilder::CreateSpherePC(100, 100, 10), &myLight);
+    myBallPC.mMeshContext.position = { 15.0f,0.0f, 40.0f };
 
     auto copyWorker = NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType::Copy);
     copyWorker->BeginWork();
@@ -33,7 +36,8 @@ void Load()
 
 void Render()
 {
-    myBall.Render(myCamera);
+    myBallPX.Render(myCamera);
+    myBallPC.Render(myCamera);
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
@@ -92,7 +96,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
             //auto dsv = texture->GetDepthStencilView();
             //graphicSystem->GetCurrentCommandList()->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
             graphicSystem->EndRender(NFGE::Graphics::RenderType::Direct);
-            graphicSystem->Reset();
         }
         
     }

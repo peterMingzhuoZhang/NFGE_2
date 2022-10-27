@@ -16,6 +16,14 @@ RenderTarget::RenderTarget()
     , mSize(0,0)
 {}
 
+void NFGE::Graphics::RenderTarget::Reset()
+{
+    for (auto& texture : mTextures)
+    {
+        texture.Reset();
+    }
+}
+
 // Attach a texture to the render target.
 // The texture will be copied into the texture array.
 void RenderTarget::AttachTexture(AttachmentPoint attachmentPoint, const Texture& texture)

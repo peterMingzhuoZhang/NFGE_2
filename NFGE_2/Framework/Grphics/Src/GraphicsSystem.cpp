@@ -40,8 +40,6 @@ namespace
 	D3D12_RESOURCE_BARRIER CreateTransitionBarrier(ComPtr<ID3D12Resource> resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter, UINT subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE);
 	ComPtr<ID3D12Fence> CreateFence(ComPtr<ID3D12Device2> device);
 	HANDLE CreateEventHandle();
-	// D3d12 object retrive
-	void ShiftRTVDescriptorHandle(_Out_ D3D12_CPU_DESCRIPTOR_HANDLE& handleStart, int offsetInDescriptors, uint32_t descriptorSize);
 	// D3d12 object Synchronization
 	uint64_t Signal(ComPtr<ID3D12CommandQueue> commandQueue, ComPtr<ID3D12Fence> fence, uint64_t& fenceValue);
 	void WaitForFenceValue(ComPtr<ID3D12Fence> fence, uint64_t fenceValue, HANDLE fenceEvent, std::chrono::milliseconds duration = std::chrono::milliseconds::max());
@@ -74,9 +72,11 @@ LRESULT CALLBACK Graphics::GraphicsSystemMessageHandler(HWND window, UINT messag
 			case VK_RETURN:
 				if (alt)
 				{
+					sGraphicsSystem->ToggleFullscreen(window);
+				}
+				break;
 			case VK_F11:
 				sGraphicsSystem->ToggleFullscreen(window);
-				}
 				break;
 			}
 		}
@@ -97,7 +97,6 @@ void GraphicsSystem::StaticTerminate()
 	if (sGraphicsSystem != nullptr)
 	{
 		sGraphicsSystem->Terminate();
-		sGraphicsSystem.reset();
 	}
 }
 
@@ -222,15 +221,7 @@ void GraphicsSystem::Terminate()
 	// Make sure the command queue has finished all commands before closing.
 	Flush();
 
-	mDevice.Reset();
-	mSwapChain.Reset();
-	//mFence.Reset();
-	//CloseHandle(mFenceEvent);
-
-	for (size_t i = 0; i < sNumFrames; i++)
-	{
-		mBackBuffers[i].Reset();
-	}
+	Reset();
 
 	// Restore original windows procedure
 	sWindowMessageHandler.Unhook();
@@ -387,7 +378,17 @@ void NFGE::Graphics::GraphicsSystem::BindMasterRenderTarget()
 
 void NFGE::Graphics::GraphicsSystem::Reset()
 {
+	mDevice.Reset();
+	mSwapChain.Reset();
+	mMasterRenderTarget.Reset();
+	//mFence.Reset();
+	//CloseHandle(mFenceEvent);
 
+	for (size_t i = 0; i < sNumFrames; i++)
+	{
+		mBackBuffers[i].Reset();
+	}
+	mDepthStencil.Reset();
 }
 
 void NFGE::Graphics::GraphicsSystem::UpdateRenderTargetViews()
@@ -599,11 +600,6 @@ namespace
 		ThrowIfFailed(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&descriptorHeap)));
 
 		return descriptorHeap;
-	}
-
-	void ShiftRTVDescriptorHandle(_Out_ D3D12_CPU_DESCRIPTOR_HANDLE& handleStart, int offsetInDescriptors, uint32_t descriptorSize)
-	{
-		handleStart.ptr += offsetInDescriptors * descriptorSize;
 	}
 
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> CreateCommandAllocator(Microsoft::WRL::ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type)
