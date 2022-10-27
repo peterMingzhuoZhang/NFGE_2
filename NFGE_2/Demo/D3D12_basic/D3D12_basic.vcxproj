@@ -146,8 +146,8 @@
     <ProjectReference Include="..\..\Framework\Core\Core.vcxproj">
       <Project>{08ebedda-74d0-4990-a74f-646e37c8b275}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\Framework\Grphics\Grphics.vcxproj">
-      <Project>{0b0404c0-6fda-444d-b363-43a11eaddc16}</Project>
+    <ProjectReference Include="..\..\Framework\Graphics\Graphics.vcxproj">
+      <Project>{40bb465e-aef9-488e-9636-78b51c64549c}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

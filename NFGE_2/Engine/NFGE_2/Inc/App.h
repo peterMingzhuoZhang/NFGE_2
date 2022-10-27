@@ -52,14 +52,14 @@ namespace NFGE
 		void SetWorld(World& world) { mWorld = &world; };
 	private:
 		AppConfig mAppConfig;
-
+		Core::Window mWindow;
 		std::map<std::string, std::unique_ptr<AppState>> mAppStates;;
 		AppState* mCurrentState = nullptr;
 		AppState* mNextState = nullptr;
 
 		NFGE::World* mWorld = nullptr;
 
-		NFGE::Timer myTimer;
+		NFGE::Timer mTimer;
 		bool initialized = false;
 
 	};

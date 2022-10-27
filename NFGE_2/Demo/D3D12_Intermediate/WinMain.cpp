@@ -1,6 +1,6 @@
 #include <Core/Inc/Core.h>
-#include <Grphics/Inc/Graphics.h>
-#include "Grphics/Src/D3DUtil.h" // hack
+#include <Graphics/Inc/Graphics.h>
+#include "Graphics/Src/D3DUtil.h" // hack
 #include <NFGE_2/Inc/NFGE_2.h>
 
 NFGE::Graphics::DirectionalLight myLight;
