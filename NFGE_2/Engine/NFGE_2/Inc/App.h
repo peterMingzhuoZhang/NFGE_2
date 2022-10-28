@@ -60,7 +60,7 @@ namespace NFGE
 		NFGE::World* mWorld = nullptr;
 
 		NFGE::Timer mTimer;
-		bool initialized = false;
+		bool mInitialized = false;
 
 	};
 
