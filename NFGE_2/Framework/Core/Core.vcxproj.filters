@@ -7,6 +7,12 @@
     <Filter Include="Src">
       <UniqueIdentifier>{005b55ea-f9f8-4abf-9716-664fd5d0257d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Inc\Memory">
+      <UniqueIdentifier>{865a0951-daba-46df-9871-e3e3b4a192c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\Memory">
+      <UniqueIdentifier>{7d42da7d-3ea2-444f-a733-122a12189f21}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Inc\Core.h">
@@ -27,6 +33,18 @@
     <ClInclude Include="Inc\Debug.h">
       <Filter>Inc</Filter>
     </ClInclude>
+    <ClInclude Include="Inc\BlockAllocator.h">
+      <Filter>Inc\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\TypeAllocator.h">
+      <Filter>Inc\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Handle.h">
+      <Filter>Inc\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\HandlePool.h">
+      <Filter>Inc\Memory</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\WindowMessageHandler.cpp">
@@ -37,6 +55,9 @@
     </ClCompile>
     <ClCompile Include="Src\Windows.cpp">
       <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\BlockAllocator.cpp">
+      <Filter>Src\Memory</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

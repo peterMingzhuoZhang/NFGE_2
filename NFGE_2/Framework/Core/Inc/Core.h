@@ -8,6 +8,10 @@
 
 #include "Common.h"
 
+#include "BlockAllocator.h"
 #include "Debug.h"
+#include "Handle.h"
+#include "HandlePool.h"
+#include "TypeAllocator.h"
 #include "Window.h"
 #include "WindowMessageHandler.h"
