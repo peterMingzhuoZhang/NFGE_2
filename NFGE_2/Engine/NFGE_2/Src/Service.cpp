@@ -9,13 +9,4 @@
 
 using namespace NFGE;
 
-namespace
-{
-	std::unique_ptr<Service> sService;
-}
-
-const Service* NFGE::Service::StaticGetClass()
-{
-	sService = std::make_unique<Service>();
-	return sService.get();
-}
+RTTI_DEFINITION(Service)

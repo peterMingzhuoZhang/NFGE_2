@@ -13,8 +13,7 @@ namespace NFGE
 	class Service
 	{
 	public:
-		static const Service* StaticGetClass();
-		virtual const Service* GetClass() const { return StaticGetClass(); }
+		RTTI_DELCEAR(Service)
 
 		Service() = default;
 		virtual ~Service() = default;

@@ -10,17 +10,7 @@
 
 using namespace NFGE;
 
-namespace
-{
-	std::unique_ptr<Component> sTransformComponent;
-}
-
-
-const Component* NFGE::TransformComponent::StaticGetClass()
-{
-	sTransformComponent = std::make_unique<TransformComponent>();
-	return sTransformComponent.get();
-}
+RTTI_DEFINITION(TransformComponent)
 
 void NFGE::TransformComponent::Initialize()
 {

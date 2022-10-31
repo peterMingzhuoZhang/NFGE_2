@@ -72,3 +72,21 @@ inline void SafeDeleteArray(T*& ptr)
 	delete[] ptr;
 	ptr = nullptr;
 }
+
+//----------------------------------------------------------------------------------------------------
+
+#define RTTI_DELCEAR(ClassName)\
+static const void* StaticGetClass();\
+virtual const void* GetClass() { return StaticGetClass(); }\
+virtual const std::string& GetClassName();
+
+#define RTTI_DEFINITION(ClassName)\
+namespace{\
+	std::string	sClassName = #ClassName;\
+}\
+const void* ClassName::StaticGetClass(){\
+	return static_cast<void*>(&sClassName);\
+}\
+const std::string& ClassName::GetClassName(){\
+	return sClassName;\
+}

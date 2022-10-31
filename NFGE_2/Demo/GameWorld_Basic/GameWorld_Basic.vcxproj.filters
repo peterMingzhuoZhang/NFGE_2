@@ -3,16 +3,25 @@
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
     <ClCompile Include="GameState.cpp" />
+    <ClCompile Include="BallRenderComponent.cpp">
+      <Filter>CustomComponents</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GameState.h" />
     <ClInclude Include="resource.h">
       <Filter>Icon</Filter>
     </ClInclude>
+    <ClInclude Include="BallRenderComponent.h">
+      <Filter>CustomComponents</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Icon">
       <UniqueIdentifier>{6ff32d5f-0869-4aa0-87fa-194a9b3f728c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CustomComponents">
+      <UniqueIdentifier>{f23ad43f-daaf-4099-9d71-0caab5f7fbf6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

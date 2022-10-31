@@ -227,6 +227,19 @@ void GraphicsSystem::Terminate()
 	sWindowMessageHandler.Unhook();
 }
 
+void NFGE::Graphics::GraphicsSystem::PrepareRender()
+{
+	auto copyWorker = NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType::Copy);
+	copyWorker->BeginWork();
+	copyWorker->ProcessWork();
+	copyWorker->EndWork();
+
+	auto computeWorker = NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType::Compute);
+	computeWorker->BeginWork();
+	computeWorker->ProcessWork();
+	computeWorker->EndWork();
+}
+
 void GraphicsSystem::BeginRender(RenderType type)
 {
 	auto worker = NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType::Direct);

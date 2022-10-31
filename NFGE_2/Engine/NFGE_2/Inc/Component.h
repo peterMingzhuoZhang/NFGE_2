@@ -12,8 +12,7 @@ namespace NFGE
 	class Component
 	{
 	public:
-		static const Component* StaticGetClass();
-		virtual const Component* GetClass() const { return StaticGetClass(); }
+		RTTI_DELCEAR(Component)
 
 		virtual ~Component() = default;
 

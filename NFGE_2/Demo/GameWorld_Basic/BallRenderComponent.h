@@ -1,19 +1,18 @@
 #pragma once
 
-#include <NFGE_2/Inc/NFGE_2.h>
-
+#include "NFGE_2/Inc/NFGE_2.h"
 using namespace NFGE;
 
-class GameState : public AppState
+class BallRenderComponent : public Component
 {
 public:
+	RTTI_DELCEAR(BallRenderComponent)
+
 	void Initialize() override;
 	void Terminate() override;
 	void Update(float deltaTime) override;
 	void Render() override;
 	void DebugUI() override;
 private:
-	NFGE::World mWorld;
-
-	GameObjectHandle mGameObjectHandle;
+	Graphics::GeometryPX mGeometry;
 };

@@ -9,7 +9,6 @@
 #include "Colors.h"
 #include "CommandQueue.h"
 #include "DescriptorAllocation.h"
-#include "DynamicDescriptorHeap.h" // TODO:: remove this dependicy 
 #include "RenderTarget.h"
 #include "Texture.h"
 
@@ -24,7 +23,6 @@ namespace NFGE::Graphics {
 	};
 
 	class DescriptorAllocator;
-	class DynamicDescriptorHeap;
 	class UploadBuffer;
 	class ResourceStateTracker;
 	class Resource;
@@ -68,6 +66,7 @@ namespace NFGE::Graphics {
 		void Initialize(const NFGE::Core::Window& window, bool fullscreen, bool useWarp, SIZE_T dedicatedVideoMemory);
 		void Terminate();
 
+		void PrepareRender();
 		void BeginRender(RenderType type);
 		ComPtr<ID3D12GraphicsCommandList2> GetCurrentCommandList() const { return mCurrentCommandList; }
 		void SetCurrentCommandList(ComPtr<ID3D12GraphicsCommandList2> comandList) { mCurrentCommandList = comandList; }

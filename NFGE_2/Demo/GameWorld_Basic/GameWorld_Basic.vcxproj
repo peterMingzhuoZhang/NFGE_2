@@ -136,10 +136,12 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BallRenderComponent.cpp" />
     <ClCompile Include="GameState.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BallRenderComponent.h" />
     <ClInclude Include="GameState.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>

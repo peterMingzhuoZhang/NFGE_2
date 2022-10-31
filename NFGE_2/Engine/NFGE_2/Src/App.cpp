@@ -43,6 +43,9 @@ void NFGE::App::Run(AppConfig appConfig)
 	// Initialize the starting state
 	mCurrentState = mAppStates.begin()->second.get();
 	mCurrentState->Initialize();
+	
+	auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
+	graphicSystem->PrepareRender();
 
 	bool done = false;
 	while (!done)
@@ -56,6 +59,7 @@ void NFGE::App::Run(AppConfig appConfig)
 			mCurrentState->Terminate();
 			mCurrentState = std::exchange(mNextState, nullptr);
 			mCurrentState->Initialize();
+			graphicSystem->PrepareRender();
 		}
 
 		// ----------------------- Update ------------------------------
@@ -64,7 +68,6 @@ void NFGE::App::Run(AppConfig appConfig)
 		mCurrentState->Update(GetDeltaTime());
 
 		// ----------------------- Render ------------------------------
-		auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
 		graphicSystem->IncrementFrameCount();
 		graphicSystem->BeginRender(NFGE::Graphics::RenderType::Direct);
 		mCurrentState->Render();
