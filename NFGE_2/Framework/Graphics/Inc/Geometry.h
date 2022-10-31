@@ -23,7 +23,7 @@ namespace NFGE::Graphics
 		NFGE::Math::Vector3 scale = NFGE::Math::Vector3::One();
 
 		// TransformData mTransformData;
-		DirectionalLight* mLight;
+		DirectionalLight* mLight{ nullptr };
 		// std::vector<Material> materials;
 	};
 

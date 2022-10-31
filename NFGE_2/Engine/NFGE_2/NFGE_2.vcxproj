@@ -147,7 +147,6 @@
     <ClInclude Include="Inc\Timer.h" />
     <ClInclude Include="Inc\TransformComponent.h" />
     <ClInclude Include="Inc\World.h" />
-    <ClInclude Include="Resource\resource.h" />
     <ClInclude Include="Src\Precompiled.h" />
   </ItemGroup>
   <ItemGroup>
@@ -167,12 +166,6 @@
     <ClCompile Include="Src\Timer.cpp" />
     <ClCompile Include="Src\TransformComponent.cpp" />
     <ClCompile Include="Src\World.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\..\Assets\Icon\favicon.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Resource\NFGE_2.rc" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\External\ImGui\ImGui.vcxproj">

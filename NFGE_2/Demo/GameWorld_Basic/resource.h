@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by D3D12_basic.rc
+// Used by GameWorld_Basic.rc
 //
 #define IDI_ICON1                       101
 

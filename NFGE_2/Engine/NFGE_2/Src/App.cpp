@@ -6,9 +6,11 @@
 
 #include "Precompiled.h"
 #include "App.h"
-#include "../Resource/resource.h" // for window icon
 
 #include "AppState.h"
+
+#include "World.h"
+#include "CameraService.h"
 
 using namespace NFGE;
 
@@ -26,7 +28,7 @@ void NFGE::App::Run(AppConfig appConfig)
 	mAppConfig = std::move(appConfig);
 
 	LOG("Creating window ...");
-	mWindow.Initialize(GetModuleHandle(NULL), mAppConfig.appName.c_str(), mAppConfig.windowWidth, mAppConfig.windowHeight, mAppConfig.maximize);
+	mWindow.Initialize(GetModuleHandle(NULL), mAppConfig.appName.c_str(), mAppConfig.windowWidth, mAppConfig.windowHeight, mAppConfig.maximize, appConfig.appIcon);
 	
 	// Initialize input system TODO
 
@@ -87,3 +89,44 @@ float NFGE::App::GetDeltaTime()
 	return mTimer.GetElapsedTime();
 }
 
+Graphics::Camera& NFGE::App::GetMainCamera()
+{
+	if (mWorld != nullptr)
+		return mWorld->GetService<NFGE::CameraService>()->GetActiveCamera();
+	else
+		return mVoidCamera;
+}
+
+Graphics::DirectionalLight& NFGE::App::GetMainLight()
+{
+	if (mWorld != nullptr)
+		return mWorld->GetMainLight();
+	else
+		return mVoidLight;
+}
+
+void NFGE::App::SoSoCameraControl(float turnSpeed, float moveSpeed, NFGE::Graphics::Camera& camera, float deltaTime)
+{
+	//TODO
+	//auto inputSystem = InputSystem::Get();
+	//if (inputSystem->IsKeyDown(KeyCode::W))
+	//	camera.Walk(moveSpeed * deltaTime);
+	//if (inputSystem->IsKeyDown(KeyCode::S))
+	//	camera.Walk(-moveSpeed * deltaTime);
+	//if (inputSystem->IsKeyDown(KeyCode::D))
+	//	camera.Strafe(moveSpeed * deltaTime);
+	//if (inputSystem->IsKeyDown(KeyCode::A))
+	//	camera.Strafe(-moveSpeed * deltaTime);
+	//if (inputSystem->IsMouseDown(MouseButton::RBUTTON))
+	//{
+	//	camera.Yaw(inputSystem->GetMouseMoveX() * turnSpeed * deltaTime);
+	//	camera.Pitch(-inputSystem->GetMouseMoveY() * turnSpeed * deltaTime);
+	//}
+}
+void NFGE::App::SoSoCameraControl(float turnSpeed, float moveSpeed, CameraEntry& cameraEntry, float deltaTime)
+{
+	SoSoCameraControl(turnSpeed, moveSpeed, cameraEntry.camera, deltaTime);
+
+	cameraEntry.mPosition = cameraEntry.camera.GetPosition();
+	cameraEntry.mDirection = cameraEntry.camera.GetDirection();
+}

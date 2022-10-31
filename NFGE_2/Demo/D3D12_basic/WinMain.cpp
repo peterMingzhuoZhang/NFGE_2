@@ -1,7 +1,6 @@
 #include <Core\Inc\Core.h>
-#include <Grphics/Inc/Graphics.h>
-#include <Grphics/Src/D3DUtil.h>
-#include "resource.h"
+#include <Graphics/Inc/Graphics.h>
+#include <Graphics/Src/D3DUtil.h>
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -240,7 +239,7 @@ void Render()
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
 	NFGE::Core::Window myWindow;
-	myWindow.Initialize(hInstance, "Hello Window", 1280, 720,false, IDI_ICON1);
+	myWindow.Initialize(hInstance, "Hello Window", 1280, 720,false);
     NFGE::Graphics::GraphicsSystem::StaticInitialize(myWindow, true, false, 0);
 
     Load(GetClientWidth(myWindow), GetClientHeight(myWindow));

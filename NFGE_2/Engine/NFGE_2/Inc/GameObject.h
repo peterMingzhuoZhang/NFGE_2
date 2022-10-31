@@ -40,7 +40,7 @@ namespace NFGE
 		{
 			for (auto& component : mComponents)
 			{
-				if (component->GetMetaClass() == ComponentType::StaticGetMetaClass())
+				if (component->GetClass() == ComponentType::StaticGetClass())
 					return static_cast<ComponentType*>(component.get());
 			}
 			return nullptr;

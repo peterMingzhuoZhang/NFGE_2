@@ -10,6 +10,17 @@
 
 using namespace NFGE;
 
+namespace
+{
+	std::unique_ptr<Service> sCameraService;
+}
+
+const Service* NFGE::CameraService::StaticGetClass()
+{
+	sCameraService = std::make_unique<CameraService>();
+	return sCameraService.get();
+}
+
 void NFGE::CameraService::WorldViewUI()
 {
 	if (ImGui::TreeNode("Cameras"))

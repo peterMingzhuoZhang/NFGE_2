@@ -46,9 +46,9 @@ namespace NFGE::Graphics
 	struct PipelineComponent_SingleTexture : public PipelineComponent
 	{
 		std::filesystem::path filename;
-		size_t mTextureId;
-		uint32_t mRootParamterIndex;
-		uint32_t mDescriptorOffset;
+		size_t mTextureId{ 0 };
+		uint32_t mRootParamterIndex{ 0 };
+		uint32_t mDescriptorOffset{ 0 };
 
 		void GetLoad(PipelineWorker& worker) override;
 		void GetBind(PipelineWorker& worker) override;

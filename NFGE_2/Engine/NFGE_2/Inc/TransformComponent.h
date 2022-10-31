@@ -14,6 +14,9 @@ namespace NFGE
 	class TransformComponent : public Component
 	{
 	public:
+		static const Component* StaticGetClass();
+		virtual const Component* GetClass() const { return StaticGetClass(); }
+
 		void Initialize() override;
 		void Render() override;
 

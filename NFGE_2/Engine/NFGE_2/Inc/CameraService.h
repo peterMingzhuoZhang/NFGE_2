@@ -36,6 +36,8 @@ namespace NFGE
 	class CameraService : public Service
 	{
 	public:
+		static const Service* StaticGetClass();
+		virtual const Service* GetClass() const { return StaticGetClass(); }
 
 		void WorldViewUI() override;
 

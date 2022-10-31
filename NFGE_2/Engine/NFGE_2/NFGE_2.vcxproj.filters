@@ -7,9 +7,6 @@
     <Filter Include="Src">
       <UniqueIdentifier>{c9f361a9-836b-43b4-9097-1653eb41d92b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource">
-      <UniqueIdentifier>{b6cd63ca-6d4f-41bb-8d68-91dd55c7106e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Inc\GameWorld">
       <UniqueIdentifier>{e8ed424e-9685-40b0-b98f-ae7bf3c2eb2d}</UniqueIdentifier>
     </Filter>
@@ -47,9 +44,6 @@
     </ClInclude>
     <ClInclude Include="Inc\AppState.h">
       <Filter>Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="Resource\resource.h">
-      <Filter>Resource</Filter>
     </ClInclude>
     <ClInclude Include="Inc\GameObject.h">
       <Filter>Inc\GameWorld</Filter>
@@ -107,15 +101,5 @@
     <ClCompile Include="Src\CameraService.cpp">
       <Filter>Src\GameWorld\Services</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\..\Assets\Icon\favicon.ico">
-      <Filter>Resource</Filter>
-    </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Resource\NFGE_2.rc">
-      <Filter>Resource</Filter>
-    </ResourceCompile>
   </ItemGroup>
 </Project>

@@ -10,6 +10,18 @@
 
 using namespace NFGE;
 
+namespace
+{
+	std::unique_ptr<Component> sTransformComponent;
+}
+
+
+const Component* NFGE::TransformComponent::StaticGetClass()
+{
+	sTransformComponent = std::make_unique<TransformComponent>();
+	return sTransformComponent.get();
+}
+
 void NFGE::TransformComponent::Initialize()
 {
 	rotation.mEularAngle = NFGE::Math::GetEular(rotation.mQuaternion);

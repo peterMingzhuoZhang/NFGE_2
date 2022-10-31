@@ -37,11 +37,12 @@ namespace NFGE
 		{
 			for (auto& service : mServices)
 			{
-				if (service->GetMetaClass() == T::StaticGetMetaClass())
+				if (service->GetClass() == T::StaticGetClass())
 					return static_cast<T*>(service.get());
 			}
 			return nullptr;
 		}
+		Graphics::DirectionalLight& GetMainLight() { return mMainLight; }
 
 		GameObjectHandle CreateEmpty(std::string name, GameObject* parent = nullptr);
 		GameObjectHandle Find(const std::string& name);
@@ -60,6 +61,7 @@ namespace NFGE
 		using GameObjectList = std::vector<GameObject*>;
 
 		Services mServices;
+		Graphics::DirectionalLight mMainLight;
 
 		std::unique_ptr<GameObjectAllocator> mGameObjectAllocator;
 		std::unique_ptr<GameObjectHandlePool> mGameObjectHandlePool;
