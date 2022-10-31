@@ -12,6 +12,16 @@
 #include "App.h"
 #include "AppState.h"
 
+#include "GameObject.h"
+#include "GameObjectFactory.h"
+#include "World.h"
+
+#include "Component.h"
+#include "TransformComponent.h"
+
+#include "Service.h"
+#include "CameraService.h"
+
 namespace NFGE { extern App sApp; }
 
 namespace NFGEApp

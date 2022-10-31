@@ -137,14 +137,25 @@
   <ItemGroup>
     <ClInclude Include="Inc\App.h" />
     <ClInclude Include="Inc\AppState.h" />
+    <ClInclude Include="Inc\CameraService.h" />
     <ClInclude Include="Inc\Common.h" />
+    <ClInclude Include="Inc\Component.h" />
+    <ClInclude Include="Inc\GameObject.h" />
+    <ClInclude Include="Inc\GameObjectFactory.h" />
     <ClInclude Include="Inc\NFGE_2.h" />
+    <ClInclude Include="Inc\Service.h" />
     <ClInclude Include="Inc\Timer.h" />
+    <ClInclude Include="Inc\TransformComponent.h" />
+    <ClInclude Include="Inc\World.h" />
     <ClInclude Include="Resource\resource.h" />
     <ClInclude Include="Src\Precompiled.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\App.cpp" />
+    <ClCompile Include="Src\CameraService.cpp" />
+    <ClCompile Include="Src\Component.cpp" />
+    <ClCompile Include="Src\GameObject.cpp" />
+    <ClCompile Include="Src\GameObjectFactory.cpp" />
     <ClCompile Include="Src\NFGE_2.cpp" />
     <ClCompile Include="Src\Precompiled.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -152,7 +163,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Src\Service.cpp" />
     <ClCompile Include="Src\Timer.cpp" />
+    <ClCompile Include="Src\TransformComponent.cpp" />
+    <ClCompile Include="Src\World.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\Assets\Icon\favicon.ico" />

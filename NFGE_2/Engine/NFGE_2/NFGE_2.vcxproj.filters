@@ -10,6 +10,24 @@
     <Filter Include="Resource">
       <UniqueIdentifier>{b6cd63ca-6d4f-41bb-8d68-91dd55c7106e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Inc\GameWorld">
+      <UniqueIdentifier>{e8ed424e-9685-40b0-b98f-ae7bf3c2eb2d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Inc\GameWorld\Components">
+      <UniqueIdentifier>{40b41d65-fb65-49c2-b801-13a69ef835fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Inc\GameWorld\Services">
+      <UniqueIdentifier>{e69957bd-a2d0-4ee0-aa99-155242c044d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\GameWorld">
+      <UniqueIdentifier>{aa6e7cf2-a185-4ca2-8c1b-24c649252d85}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\GameWorld\Componenets">
+      <UniqueIdentifier>{773f7592-1ec9-40ef-b68e-0ba4ae6f94b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src\GameWorld\Services">
+      <UniqueIdentifier>{0cc31161-9067-4789-b1c4-986b4570e181}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Inc\NFGE_2.h">
@@ -33,6 +51,27 @@
     <ClInclude Include="Resource\resource.h">
       <Filter>Resource</Filter>
     </ClInclude>
+    <ClInclude Include="Inc\GameObject.h">
+      <Filter>Inc\GameWorld</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\GameObjectFactory.h">
+      <Filter>Inc\GameWorld</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\World.h">
+      <Filter>Inc\GameWorld</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Component.h">
+      <Filter>Inc\GameWorld\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\TransformComponent.h">
+      <Filter>Inc\GameWorld\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\Service.h">
+      <Filter>Inc\GameWorld\Services</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\CameraService.h">
+      <Filter>Inc\GameWorld\Services</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Timer.cpp">
@@ -46,6 +85,27 @@
     </ClCompile>
     <ClCompile Include="Src\NFGE_2.cpp">
       <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameObject.cpp">
+      <Filter>Src\GameWorld</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameObjectFactory.cpp">
+      <Filter>Src\GameWorld</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\World.cpp">
+      <Filter>Src\GameWorld</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Component.cpp">
+      <Filter>Src\GameWorld\Componenets</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\TransformComponent.cpp">
+      <Filter>Src\GameWorld\Componenets</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Service.cpp">
+      <Filter>Src\GameWorld\Services</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\CameraService.cpp">
+      <Filter>Src\GameWorld\Services</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
