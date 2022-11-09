@@ -70,6 +70,7 @@ void NFGE::Graphics::PipelineWorker::RegisterComponent(PipelineComponent* compon
 
 void NFGE::Graphics::PipelineWorker::BeginWork()
 {
+    ASSERT(mCurrentCommandList == nullptr, "[PipelineWorker] Can not BeginWork() while doing work");
     mCurrentCommandList = mCommandQueue->GetCommandList();
     NFGE::Graphics::GraphicsSystem::Get()->SetCurrentCommandList(mCurrentCommandList);
 }

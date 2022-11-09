@@ -5,6 +5,7 @@ namespace
 {
 	std::string mainCameraID = "MainCamera";
 	std::string gameObjectID = "GameObject1";
+	std::string LogoID = "basketball.jpg";
 }
 
 void GameState::Initialize()
@@ -18,6 +19,8 @@ void GameState::Initialize()
 	mGameObjectHandle.Get()->GetComponent<NFGE::TransformComponent>()->position = { -15.0f,0.0f, 40.0f };
 	mGameObjectHandle.Get()->AddComponent<BallRenderComponent>();
 	mGameObjectHandle.Get()->Initialize();
+
+	mLogo = Graphics::TextureManager::Get()->LoadTexture(LogoID, Graphics::TextureUsage::Sprite);
 }
 
 void GameState::Terminate()
@@ -33,6 +36,7 @@ void GameState::Update(float deltaTime)
 void GameState::Render()
 {
 	mWorld.Render();
+	sApp.DrawSprite(mLogo, { 500.0f,500.0f });
 }
 
 void GameState::DebugUI()

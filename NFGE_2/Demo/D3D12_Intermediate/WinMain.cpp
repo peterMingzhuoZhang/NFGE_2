@@ -89,13 +89,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         {
             auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
             graphicSystem->IncrementFrameCount();
-            graphicSystem->BeginRender(NFGE::Graphics::RenderType::Direct);
+            graphicSystem->BeginMasterRender();
             Render();
             //NFGE::Graphics::Texture* texture = NFGE::Graphics::TextureManager::Get()->GetTexture(myBall.mMeshRenderStrcuture.mTexture_0);
             //auto rtv = texture->GetRenderTargetView();
             //auto dsv = texture->GetDepthStencilView();
             //graphicSystem->GetCurrentCommandList()->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
-            graphicSystem->EndRender(NFGE::Graphics::RenderType::Direct);
+            graphicSystem->EndMasterRender();
+
+            graphicSystem->Present();
         }
         
     }

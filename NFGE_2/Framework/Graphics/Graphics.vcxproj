@@ -145,6 +145,7 @@
     <ClInclude Include="Inc\DescriptorAllocation.h" />
     <ClInclude Include="Inc\DescriptorAllocator.h" />
     <ClInclude Include="Inc\DescriptorAllocatorPage.h" />
+    <ClInclude Include="Inc\DrawCommand.h" />
     <ClInclude Include="Inc\DynamicDescriptorHeap.h" />
     <ClInclude Include="Inc\GenerateMipsPSO.h" />
     <ClInclude Include="Inc\Geometry.h" />
@@ -161,6 +162,7 @@
     <ClInclude Include="Inc\Resource.h" />
     <ClInclude Include="Inc\ResourceStateTracker.h" />
     <ClInclude Include="Inc\RootSignature.h" />
+    <ClInclude Include="Inc\SpriteRenderer.h" />
     <ClInclude Include="Inc\Texture.h" />
     <ClInclude Include="Inc\TextureManager.h" />
     <ClInclude Include="Inc\UploadBuffer.h" />
@@ -195,6 +197,7 @@
     <ClCompile Include="Src\Resource.cpp" />
     <ClCompile Include="Src\ResourceStateTracker.cpp" />
     <ClCompile Include="Src\RootSignature.cpp" />
+    <ClCompile Include="Src\SpriteRenderer.cpp" />
     <ClCompile Include="Src\Texture.cpp" />
     <ClCompile Include="Src\TextureManager.cpp" />
     <ClCompile Include="Src\UploadBuffer.cpp" />

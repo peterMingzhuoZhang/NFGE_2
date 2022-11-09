@@ -289,9 +289,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         float aspectRatio = static_cast<float>(GetClientWidth(myWindow)) / static_cast<float>(GetClientHeight(myWindow));
         projectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_FoV), aspectRatio, 0.1f, 100.0f);
 
-        NFGE::Graphics::GraphicsSystem::Get()->BeginRender(NFGE::Graphics::RenderType::Direct);
+        NFGE::Graphics::GraphicsSystem::Get()->BeginMasterRender();
         Render();
-        NFGE::Graphics::GraphicsSystem::Get()->EndRender(NFGE::Graphics::RenderType::Direct);
+        NFGE::Graphics::GraphicsSystem::Get()->EndMasterRender();
+        NFGE::Graphics::GraphicsSystem::Get()->Present();
 	}
 
     NFGE::Graphics::GraphicsSystem::StaticTerminate();

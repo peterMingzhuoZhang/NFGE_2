@@ -138,6 +138,12 @@
     <ClInclude Include="Inc\PipelineComponent.h">
       <Filter>Inc\RenderObject</Filter>
     </ClInclude>
+    <ClInclude Include="Inc\SpriteRenderer.h">
+      <Filter>Inc\RenderObject</Filter>
+    </ClInclude>
+    <ClInclude Include="Inc\DrawCommand.h">
+      <Filter>Inc\NFGE_D3d12</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Precompiled.cpp">
@@ -210,6 +216,9 @@
       <Filter>Src\RenderObject</Filter>
     </ClCompile>
     <ClCompile Include="Src\PipelineComponent.cpp">
+      <Filter>Src\RenderObject</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SpriteRenderer.cpp">
       <Filter>Src\RenderObject</Filter>
     </ClCompile>
   </ItemGroup>

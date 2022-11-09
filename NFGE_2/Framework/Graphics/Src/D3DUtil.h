@@ -19,6 +19,7 @@ namespace NFGE::Graphics
 	// Release stale descriptors. This should only be called with a completed frame counter.
 	void ReleaseStaleDescriptors(uint64_t finishedFrame);
 	UINT GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type);
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors);
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> GetVectexLayout(uint32_t vertexFormat);
 }

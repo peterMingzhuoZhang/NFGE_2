@@ -16,6 +16,7 @@
 #include "UploadBuffer.h"
 #include "RootSignature.h"
 #include "PipelineWorker.h"
+#include "SpriteRenderer.h"
 
 using namespace NFGE;
 using namespace NFGE::Graphics;
@@ -213,6 +214,7 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 
 	UpdateRenderTargetViews();
 	UpdateDepthStencilView();
+	BindMasterRenderTarget();
 	mScissorRect = CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX);
 }
 
@@ -227,55 +229,56 @@ void GraphicsSystem::Terminate()
 	sWindowMessageHandler.Unhook();
 }
 
-void NFGE::Graphics::GraphicsSystem::PrepareRender()
+void NFGE::Graphics::GraphicsSystem::BeginPrepare()
 {
-	auto copyWorker = NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType::Copy);
-	copyWorker->BeginWork();
-	copyWorker->ProcessWork();
-	copyWorker->EndWork();
-
-	auto computeWorker = NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType::Compute);
-	computeWorker->BeginWork();
-	computeWorker->ProcessWork();
-	computeWorker->EndWork();
+	mCopyWorker->BeginWork();
+	mComputeWorker->BeginWork();
 }
 
-void GraphicsSystem::BeginRender(RenderType type)
+void NFGE::Graphics::GraphicsSystem::EndPrepare()
 {
-	auto worker = NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType::Direct);
-	worker->BeginWork();
+	mCopyWorker->ProcessWork();
+	mCopyWorker->EndWork();
+	mComputeWorker->ProcessWork();
+	mComputeWorker->EndWork();
+}
+
+void GraphicsSystem::BeginMasterRender()
+{
+	mDirectWorker->BeginWork();
 
 	// Clear the render target.
 	{
 		BindMasterRenderTarget();
-		worker->ClearTexture(mMasterRenderTarget.GetTexture(AttachmentPoint::Color0), &mClearColor.x);
-		worker->ClearDepthStencilTexture(mMasterRenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
+		mDirectWorker->ClearTexture(mMasterRenderTarget.GetTexture(AttachmentPoint::Color0), &mClearColor.x);
+		mDirectWorker->ClearDepthStencilTexture(mMasterRenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
 	}
 
-	worker->SetRenderTarget(mMasterRenderTarget);
-	worker->SetViewport(mMasterRenderTarget.GetViewport());
-	worker->SetScissorRect(mScissorRect);
+	mDirectWorker->SetRenderTarget(mMasterRenderTarget);
+	mDirectWorker->SetViewport(mMasterRenderTarget.GetViewport());
+	mDirectWorker->SetScissorRect(mScissorRect);
 }
 
-void GraphicsSystem::EndRender(RenderType type)
+void GraphicsSystem::EndMasterRender()
 {
-	auto worker = NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType::Direct);
 	auto& currentBackbuffer = mBackBuffers[mCurrentBackBufferIndex];
+	mDirectWorker->TransitionBarrier(currentBackbuffer, D3D12_RESOURCE_STATE_PRESENT);
+	mDirectWorker->EndWork();
+}
 
-	
-	worker->TransitionBarrier(currentBackbuffer, D3D12_RESOURCE_STATE_PRESENT);
-	worker->EndWork();
-
+void NFGE::Graphics::GraphicsSystem::Present()
+{
 	uint32_t syncInterval = mVSync ? 1 : 0;
 	uint32_t presentFlag = 0; // set up present flags if needed
 	ThrowIfFailed(mSwapChain->Present(syncInterval, presentFlag));
-	
-	mFrameFenceValues[mCurrentBackBufferIndex] = worker->Signal();
+
+	mFrameFenceValues[mCurrentBackBufferIndex] = mDirectWorker->Signal();
 	mFrameCountValues[mCurrentBackBufferIndex] = mFrameCount;
 
 	mCurrentBackBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 
 	ReleaseStaleDescriptors(mFrameCountValues[mCurrentBackBufferIndex]);
+	SpriteRenderer::Get()->ReleaseGraphicsMemory();
 }
 
 void GraphicsSystem::ToggleFullscreen(HWND windowHandle)
@@ -373,6 +376,12 @@ uint32_t NFGE::Graphics::GraphicsSystem::GetBackBufferHeight() const
 	return mHeight;
 }
 
+D3D12_GPU_DESCRIPTOR_HANDLE NFGE::Graphics::GraphicsSystem::GetGpuHandle(D3D12_DESCRIPTOR_HEAP_TYPE type, Texture& texture)
+{
+	return D3D12_GPU_DESCRIPTOR_HANDLE();
+	//return mDescriptorAllocators[type]->CopyDescriptor(*this, cpuHandle);
+}
+
 const RenderTarget& NFGE::Graphics::GraphicsSystem::GetRenderTarget()
 {
 	return mMasterRenderTarget;
@@ -380,13 +389,8 @@ const RenderTarget& NFGE::Graphics::GraphicsSystem::GetRenderTarget()
 
 void NFGE::Graphics::GraphicsSystem::BindMasterRenderTarget()
 {
-	for (size_t i = 0; i < 100; i++)
-	{
-		mMasterRenderTarget.AttachTexture(AttachmentPoint::Color0, mBackBuffers[mCurrentBackBufferIndex]);
-		mMasterRenderTarget.AttachTexture(AttachmentPoint::DepthStencil, mDepthStencil);
-	}
-	//mMasterRenderTarget.AttachTexture(AttachmentPoint::Color0, mBackBuffers[mCurrentBackBufferIndex]);
-	//mMasterRenderTarget.AttachTexture(AttachmentPoint::DepthStencil, mDepthStencil);
+	mMasterRenderTarget.AttachTexture(AttachmentPoint::Color0, mBackBuffers[mCurrentBackBufferIndex]);
+	mMasterRenderTarget.AttachTexture(AttachmentPoint::DepthStencil, mDepthStencil);
 }
 
 void NFGE::Graphics::GraphicsSystem::Reset()
@@ -430,8 +434,6 @@ void NFGE::Graphics::GraphicsSystem::UpdateDepthStencilView()
 	mDepthStencil = Texture(depthDesc, &depthClearValue,
 		TextureUsage::Depth,
 		L"Depth Render Target");
-
-	//mMasterRenderTarget.AttachTexture(AttachmentPoint::DepthStencil, mDepthStencil);
 }
 
 void NFGE::Graphics::GraphicsSystem::Flush()
@@ -608,6 +610,7 @@ namespace
 
 		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 		desc.NumDescriptors = numDescriptors;
+		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		desc.Type = type;
 
 		ThrowIfFailed(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&descriptorHeap)));

@@ -18,6 +18,7 @@ namespace NFGE::Graphics {
         Depth = Heightmap,      // Treat height and depth textures the same.
         Normalmap,
         RenderTarget,           // Texture is used as a render target.
+        Sprite
     };
 
     class Texture : public Resource
@@ -49,6 +50,7 @@ namespace NFGE::Graphics {
 
         uint32_t GetWidth() const { return mWidth; }
         uint32_t GetHeight() const { return mHeight; }
+        std::wstring GetName() const { return mResourceName; }
 
         /**
          * Resize the texture.
@@ -83,6 +85,8 @@ namespace NFGE::Graphics {
          */
         virtual D3D12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() const;
 
+        void CreateSpriteTextureShaderResourceView(Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap, uint32_t index);
+
         bool CheckSRVSupport()
         {
             return CheckFormatSupport(D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE);
@@ -114,6 +118,9 @@ namespace NFGE::Graphics {
         static DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT format);
         static DXGI_FORMAT GetUAVCompatableFormat(DXGI_FORMAT format);
 
+        void SetQuickTexture(uint32_t index, uint32_t generation) { mQuickTextureIndex = index; mQuickTextureGeneration = generation; };
+        uint32_t GetQuickTextureID() const { return mQuickTextureIndex; };
+        uint32_t GetQuickTextureGen() const { return mQuickTextureGeneration; };
     protected:
 
     private:
@@ -133,6 +140,10 @@ namespace NFGE::Graphics {
 
         uint32_t mWidth{ 0 };
         uint32_t mHeight{ 0 };
+
+        uint32_t mQuickTextureIndex{ 0 };
+        uint32_t mQuickTextureGeneration{ 0 };
+        
     };
 }
 

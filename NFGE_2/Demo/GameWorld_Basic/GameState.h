@@ -16,4 +16,5 @@ private:
 	NFGE::World mWorld;
 
 	GameObjectHandle mGameObjectHandle;
+	Graphics::TextureId mLogo;
 };

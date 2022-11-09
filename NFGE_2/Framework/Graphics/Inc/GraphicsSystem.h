@@ -66,11 +66,16 @@ namespace NFGE::Graphics {
 		void Initialize(const NFGE::Core::Window& window, bool fullscreen, bool useWarp, SIZE_T dedicatedVideoMemory);
 		void Terminate();
 
-		void PrepareRender();
-		void BeginRender(RenderType type);
+		
+
+		void BeginPrepare();
+		void EndPrepare();
+		void BeginMasterRender();
 		ComPtr<ID3D12GraphicsCommandList2> GetCurrentCommandList() const { return mCurrentCommandList; }
 		void SetCurrentCommandList(ComPtr<ID3D12GraphicsCommandList2> comandList) { mCurrentCommandList = comandList; }
-		void EndRender(RenderType type);
+		void EndMasterRender();
+
+		void Present();
 
 		void ToggleFullscreen(HWND WindowHandle);
 		void Resize(uint32_t width, uint32_t height);
@@ -82,7 +87,11 @@ namespace NFGE::Graphics {
 		uint32_t GetBackBufferWidth() const;
 		uint32_t GetBackBufferHeight() const;
 
+		D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(D3D12_DESCRIPTOR_HEAP_TYPE type, Texture& cpuHandle);
+
 		const RenderTarget& GetRenderTarget();
+		DXGI_FORMAT GetBackBufferFormat() { return mBackBuffers[0].GetD3D12ResourceDesc().Format; };
+		DXGI_FORMAT GetDepthBufferFormat() { return mDepthStencil.GetD3D12ResourceDesc().Format; };
 		void BindMasterRenderTarget();
 
 		void Reset();
@@ -120,6 +129,7 @@ namespace NFGE::Graphics {
 		std::unique_ptr<PipelineWorker> mDirectWorker{ nullptr };
 		std::unique_ptr<PipelineWorker> mComputeWorker{ nullptr };
 		std::unique_ptr<PipelineWorker> mCopyWorker{ nullptr };
+		PipelineWorker* mLastWorker{ nullptr };
 
 		// SwapChian
 		ComPtr<IDXGISwapChain4> mSwapChain{ nullptr };
@@ -129,7 +139,7 @@ namespace NFGE::Graphics {
 		Texture mDepthStencil;
 		UINT mCurrentBackBufferIndex{ 0 };
 		RenderTarget mMasterRenderTarget;
-
+		
 		std::unique_ptr<DescriptorAllocator> mDescriptorAllocators[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
 		D3D12_VIEWPORT mViewport{};

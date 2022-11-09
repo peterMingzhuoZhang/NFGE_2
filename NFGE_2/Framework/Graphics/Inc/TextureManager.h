@@ -34,7 +34,6 @@ namespace NFGE::Graphics
 
 		uint32_t GetSpriteWidth(TextureId textureId);
 		uint32_t GetSpriteHeight(TextureId textureId);
-		void* GetSprite(TextureId textureId);
 	private:
 		std::filesystem::path mRootPath;
 		std::unordered_map<TextureId, std::unique_ptr<Texture>> mInventory;

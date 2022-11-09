@@ -53,6 +53,16 @@ namespace NFGE
 		void SoSoCameraControl(float turnSpeed, float moveSpeed, CameraEntry& camera, float deltaTime);
 
 		void SetWorld(World& world) { mWorld = &world; };
+
+		// Sprites Functions
+		void DrawSprite(Graphics::TextureId textureId, const Math::Vector2& position);
+		void DrawSprite(Graphics::TextureId textureId, const Math::Vector2& position, float rotation, Graphics::Pivot pivot = Graphics::Pivot::Center);
+		void DrawSprite(Graphics::TextureId textureId, const Math::Rect& sourceRect, const Math::Vector2& position);
+		void DrawSprite(Graphics::TextureId textureId, const Math::Vector2& position, float rotation, float alpha);
+		void DrawSprite(Graphics::TextureId textureId, const Math::Vector2& position, float rotation, float alpha, float anchorX, float anchorY, float xScale, float yScale, Math::Rect = Math::Rect{});
+		uint32_t GetSpriteWidth(Graphics::TextureId textureId);
+		uint32_t GetSpriteHeight(Graphics::TextureId textureId);
+
 	private:
 		AppConfig mAppConfig;
 		Core::Window mWindow;
@@ -66,7 +76,9 @@ namespace NFGE
 
 		NFGE::Timer mTimer;
 		bool mInitialized = false;
+		std::vector<NFGE::Graphics::SpriteCommand> mySpriteCommands;
 
+		void ExecuteSpriteCommand();
 	};
 
 	template<class StateType>

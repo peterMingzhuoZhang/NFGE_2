@@ -17,6 +17,8 @@
 #include "DynamicDescriptorHeap.h"
 #include "RootSignature.h"
 #include "PipelineWorker.h"
+#include "SpriteRenderer.h"
+
 using namespace NFGE::Graphics;
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -72,16 +74,22 @@ TextureId NFGE::Graphics::TextureManager::LoadTexture(std::filesystem::path file
 	auto [iter, success] = mInventory.insert({ hash, nullptr });
 	if (success)
 	{
-        auto worker = NFGE::Graphics::GetWorker(WorkerType::Compute);
+		auto worker = NFGE::Graphics::GetWorker(WorkerType::Compute);
 		iter->second = std::make_unique<Texture>();
-        if (isUsingRootPath)
-            LoadTextureFromFile(*iter->second.get(), mRootPath / filename, textureUsage, *worker);
-        else
-            LoadTextureFromFile(*iter->second.get(), filename, textureUsage, *worker);
+		if (isUsingRootPath)
+			LoadTextureFromFile(*iter->second.get(), mRootPath / filename, textureUsage, *worker);
+		else
+			LoadTextureFromFile(*iter->second.get(), filename, textureUsage, *worker);
+
+        if (textureUsage == TextureUsage::Sprite)
+        {
+            Graphics::SpriteRenderer::Get()->RegisterSpriteTexture(*iter->second.get());
+        }
+
 	}
 	else
 	{
-		int a = 0;
+        ASSERT(false, "[TextureManager] Reload on same texture ID not is not allowed. Must clear first.");
 	}
 	return hash;
 }
@@ -115,12 +123,6 @@ uint32_t NFGE::Graphics::TextureManager::GetSpriteHeight(TextureId textureId)
 {
 	Texture* texture = TextureManager::Get()->GetTexture(textureId);
 	return texture ? texture->GetHeight() : 0u;
-}
-
-void* NFGE::Graphics::TextureManager::GetSprite(TextureId textureId)
-{
-	Texture* texture = TextureManager::Get()->GetTexture(textureId);
-	return texture ? texture->GetD3D12Resource().Get() : nullptr;
 }
 
 void NFGE::Graphics::TextureManager::GenerateMips(Texture& texture, PipelineWorker& pipelineWorker)

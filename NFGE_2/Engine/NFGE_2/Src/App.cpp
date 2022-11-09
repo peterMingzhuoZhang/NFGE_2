@@ -35,6 +35,7 @@ void NFGE::App::Run(AppConfig appConfig)
 	// Initialize grapics system
 	Graphics::GraphicsSystem::StaticInitialize(mWindow, true, false, 0);
 	Graphics::TextureManager::StaticInitialize(mAppConfig.assetsDirectory / "Images");
+	Graphics::SpriteRenderer::StaticInitialize();
 	mTimer.Initialize();
 
 	// App system initialize finished
@@ -42,10 +43,12 @@ void NFGE::App::Run(AppConfig appConfig)
 
 	// Initialize the starting state
 	mCurrentState = mAppStates.begin()->second.get();
-	mCurrentState->Initialize();
 	
 	auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
-	graphicSystem->PrepareRender();
+	graphicSystem->BeginPrepare();
+	mCurrentState->Initialize();
+	graphicSystem->EndPrepare();
+	Graphics::SpriteRenderer::Get()->PrepareRender();
 
 	bool done = false;
 	while (!done)
@@ -56,10 +59,14 @@ void NFGE::App::Run(AppConfig appConfig)
 
 		if (mNextState)
 		{
+			graphicSystem->Reset();
+			Graphics::SpriteRenderer::Get()->Reset();
 			mCurrentState->Terminate();
 			mCurrentState = std::exchange(mNextState, nullptr);
+			graphicSystem->BeginPrepare();
 			mCurrentState->Initialize();
-			graphicSystem->PrepareRender();
+			graphicSystem->EndPrepare();
+			Graphics::SpriteRenderer::Get()->PrepareRender();
 		}
 
 		// ----------------------- Update ------------------------------
@@ -69,13 +76,23 @@ void NFGE::App::Run(AppConfig appConfig)
 
 		// ----------------------- Render ------------------------------
 		graphicSystem->IncrementFrameCount();
-		graphicSystem->BeginRender(NFGE::Graphics::RenderType::Direct);
-		mCurrentState->Render();
-		graphicSystem->EndRender(NFGE::Graphics::RenderType::Direct);
+
+		graphicSystem->BeginMasterRender();
+		{
+			mCurrentState->Render();
+
+			Graphics::SpriteRenderer::Get()->BeginRender();
+			ExecuteSpriteCommand();
+			Graphics::SpriteRenderer::Get()->EndRender();
+		}
+		graphicSystem->EndMasterRender();
+
+		graphicSystem->Present();
 	}
 
 	// Clean Up
 	mCurrentState->Terminate();
+	Graphics::SpriteRenderer::StaticTerminate();
 	Graphics::TextureManager::StaticTerminate();
 	Graphics::GraphicsSystem::StaticTerminate();
 	// InputSystem terminate TODO
@@ -132,4 +149,94 @@ void NFGE::App::SoSoCameraControl(float turnSpeed, float moveSpeed, CameraEntry&
 
 	cameraEntry.mPosition = cameraEntry.camera.GetPosition();
 	cameraEntry.mDirection = cameraEntry.camera.GetDirection();
+}
+
+void NFGE::App::DrawSprite(Graphics::TextureId textureId, const Math::Vector2& position)
+{
+	ASSERT(mInitialized, "[XEngine] Engine not started.");
+	mySpriteCommands.emplace_back(textureId, position, 0.0f);
+}
+
+void NFGE::App::DrawSprite(Graphics::TextureId textureId, const Math::Vector2& position, float rotation, Graphics::Pivot pivot)
+{
+	ASSERT(mInitialized, "[XEngine] Engine not started.");
+	mySpriteCommands.emplace_back(textureId, position, rotation, pivot);
+}
+
+void NFGE::App::DrawSprite(Graphics::TextureId textureId, const Math::Rect& sourceRect, const Math::Vector2& position)
+{
+	ASSERT(mInitialized, "[XEngine] Engine not started.");
+	mySpriteCommands.emplace_back(textureId, sourceRect, position, 0.0f);
+}
+
+void NFGE::App::DrawSprite(Graphics::TextureId textureId, const Math::Vector2& position, float rotation, float alpha)
+{
+	ASSERT(mInitialized, "[XEngine] Engine not started.");
+	mySpriteCommands.emplace_back(textureId, position, rotation, alpha);
+}
+
+void NFGE::App::DrawSprite(Graphics::TextureId textureId, const Math::Vector2& position, float rotation, float alpha, float anchorX, float anchorY, float xScale, float yScale, Math::Rect rect)
+{
+	ASSERT(mInitialized, "[XEngine] Engine not started.");
+	mySpriteCommands.emplace_back(textureId, position, rotation, alpha, anchorX, anchorY, xScale, yScale, rect);
+}
+
+uint32_t NFGE::App::GetSpriteWidth(Graphics::TextureId textureId)
+{
+	Graphics::Texture* texture = Graphics::TextureManager::Get()->GetTexture(textureId);
+	return texture ? texture->GetWidth() : 0u;
+}
+
+uint32_t NFGE::App::GetSpriteHeight(Graphics::TextureId textureId)
+{
+	Graphics::Texture* texture = Graphics::TextureManager::Get()->GetTexture(textureId);
+	return texture ? texture->GetHeight() : 0u;
+}
+
+void NFGE::App::ExecuteSpriteCommand()
+{
+	for (const auto& command : mySpriteCommands)
+	{
+		Graphics::Texture* texture = Graphics::TextureManager::Get()->GetTexture(command.textureId);
+		if (texture)
+		{
+			if (command.alpha == 1.0f)
+			{
+				if (Math::IsEmpty(command.sourceRect))
+				{
+					if (command.anchorX != FLT_MIN || command.anchorY != FLT_MIN)
+					{
+						Graphics::SpriteRenderer::Get()->Draw(*texture, command.position, command.rotation, command.alpha, command.anchorX, command.anchorY, command.xScale, command.yScale);
+					}
+					else
+					{
+						Graphics::SpriteRenderer::Get()->Draw(*texture, command.position, command.rotation, command.pivot);
+					}
+				}
+				else
+				{
+					if (command.anchorX != FLT_MIN || command.anchorY != FLT_MIN)
+					{
+						Graphics::SpriteRenderer::Get()->Draw(*texture, command.sourceRect, command.position, command.rotation, command.alpha, command.anchorX, command.anchorY, command.xScale, command.yScale);
+					}
+					else
+					{
+						Graphics::SpriteRenderer::Get()->Draw(*texture, command.sourceRect, command.position, command.rotation, command.pivot);
+					}
+				}
+			}
+			else
+			{
+				if (command.anchorX != FLT_MIN || command.anchorY != FLT_MIN)
+				{
+					Graphics::SpriteRenderer::Get()->Draw(*texture, command.position, command.rotation, command.alpha, command.anchorX, command.anchorY, command.xScale, command.yScale);
+				}
+				else
+				{
+					Graphics::SpriteRenderer::Get()->Draw(*texture, command.position, command.rotation, command.alpha);
+				}
+			}
+		}
+	}
+	mySpriteCommands.clear();
 }

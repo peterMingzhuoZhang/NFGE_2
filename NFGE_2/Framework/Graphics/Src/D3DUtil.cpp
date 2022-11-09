@@ -56,7 +56,8 @@ NFGE::Graphics::PipelineWorker* NFGE::Graphics::GetWorker(NFGE::Graphics::Worker
         break;
     }
 
-    ASSERT(worker, "CommandQueue should not be nullptr.");
+    ASSERT(worker, "Worker should not be nullptr.");
+    graphicSystem->mLastWorker = worker;
     return worker;
 }
 
@@ -87,6 +88,20 @@ void NFGE::Graphics::ReleaseStaleDescriptors(uint64_t finishedFrame)
 UINT NFGE::Graphics::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type)
 {
     return NFGE::Graphics::GraphicsSystem::Get()->mDevice->GetDescriptorHandleIncrementSize(type);
+}
+
+Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> NFGE::Graphics::CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors)
+{
+    ComPtr<ID3D12DescriptorHeap> descriptorHeap;
+
+    D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+    desc.NumDescriptors = numDescriptors;
+    desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    desc.Type = type;
+
+    ThrowIfFailed(GetDevice()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&descriptorHeap)));
+
+    return descriptorHeap;
 }
 
 std::vector<D3D12_INPUT_ELEMENT_DESC> NFGE::Graphics::GetVectexLayout(uint32_t vertexFormat)

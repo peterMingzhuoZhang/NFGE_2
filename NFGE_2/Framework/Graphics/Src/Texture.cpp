@@ -273,6 +273,21 @@ D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetDepthStencilView() const
     return mDepthStencilView.GetDescriptorHandle();
 }
 
+void NFGE::Graphics::Texture::CreateSpriteTextureShaderResourceView(Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap, uint32_t index)
+{
+    auto device = Graphics::GetDevice();
+    D3D12_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc = {};
+    shaderResourceViewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    shaderResourceViewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    shaderResourceViewDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+    shaderResourceViewDesc.Texture2D.MipLevels = 1;
+    shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
+    shaderResourceViewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+    uint32_t incrementSize = NFGE::Graphics::GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptorHeap->GetCPUDescriptorHandleForHeapStart(), index, incrementSize);
+    device->CreateShaderResourceView(mD3d12Resource.Get(), &shaderResourceViewDesc, cpuHandle);
+}
+
 bool Texture::IsUAVCompatibleFormat(DXGI_FORMAT format)
 {
     switch (format)
