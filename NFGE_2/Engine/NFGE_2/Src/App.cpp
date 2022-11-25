@@ -30,12 +30,13 @@ void NFGE::App::Run(AppConfig appConfig)
 	LOG("Creating window ...");
 	mWindow.Initialize(GetModuleHandle(NULL), mAppConfig.appName.c_str(), mAppConfig.windowWidth, mAppConfig.windowHeight, mAppConfig.maximize, appConfig.appIcon);
 	
-	// Initialize input system TODO
-
+	HWND handle = mWindow.GetWindowHandle();
+	Input::InputSystem::StaticInitialize(handle);
 	// Initialize grapics system
 	Graphics::GraphicsSystem::StaticInitialize(mWindow, true, false, 0);
 	Graphics::TextureManager::StaticInitialize(mAppConfig.assetsDirectory / "Images");
 	Graphics::SpriteRenderer::StaticInitialize();
+	Graphics::SimpleDraw::StaticInitialize(mAppConfig.assetsDirectory / "Shaders");
 	mTimer.Initialize();
 
 	// App system initialize finished
@@ -45,9 +46,9 @@ void NFGE::App::Run(AppConfig appConfig)
 	mCurrentState = mAppStates.begin()->second.get();
 	
 	auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
-	graphicSystem->BeginPrepare();
+	graphicSystem->BeginUpload();
 	mCurrentState->Initialize();
-	graphicSystem->EndPrepare();
+	graphicSystem->EndUpload();
 	Graphics::SpriteRenderer::Get()->PrepareRender();
 
 	bool done = false;
@@ -63,14 +64,14 @@ void NFGE::App::Run(AppConfig appConfig)
 			Graphics::SpriteRenderer::Get()->Reset();
 			mCurrentState->Terminate();
 			mCurrentState = std::exchange(mNextState, nullptr);
-			graphicSystem->BeginPrepare();
+			graphicSystem->BeginUpload();
 			mCurrentState->Initialize();
-			graphicSystem->EndPrepare();
+			graphicSystem->EndUpload();
 			Graphics::SpriteRenderer::Get()->PrepareRender();
 		}
 
 		// ----------------------- Update ------------------------------
-		// InputSystem update TODO
+		Input::InputSystem::Get()->Update();
 		mTimer.Update();
 		mCurrentState->Update(GetDeltaTime());
 
@@ -84,6 +85,13 @@ void NFGE::App::Run(AppConfig appConfig)
 			Graphics::SpriteRenderer::Get()->BeginRender();
 			ExecuteSpriteCommand();
 			Graphics::SpriteRenderer::Get()->EndRender();
+
+			graphicSystem->BeginUpload();
+			mCurrentState->DebugUI();
+			Graphics::SimpleDraw::RenderUpdate();
+			graphicSystem->EndUpload();
+
+			Graphics::SimpleDraw::Render(GetMainCamera());
 		}
 		graphicSystem->EndMasterRender();
 
@@ -92,10 +100,11 @@ void NFGE::App::Run(AppConfig appConfig)
 
 	// Clean Up
 	mCurrentState->Terminate();
+	Graphics::SimpleDraw::StaticTerminate();
 	Graphics::SpriteRenderer::StaticTerminate();
 	Graphics::TextureManager::StaticTerminate();
 	Graphics::GraphicsSystem::StaticTerminate();
-	// InputSystem terminate TODO
+	Input::InputSystem::StaticTerminate();
 	mWindow.Terminate();
 }
 
@@ -127,21 +136,20 @@ Graphics::DirectionalLight& NFGE::App::GetMainLight()
 
 void NFGE::App::SoSoCameraControl(float turnSpeed, float moveSpeed, NFGE::Graphics::Camera& camera, float deltaTime)
 {
-	//TODO
-	//auto inputSystem = InputSystem::Get();
-	//if (inputSystem->IsKeyDown(KeyCode::W))
-	//	camera.Walk(moveSpeed * deltaTime);
-	//if (inputSystem->IsKeyDown(KeyCode::S))
-	//	camera.Walk(-moveSpeed * deltaTime);
-	//if (inputSystem->IsKeyDown(KeyCode::D))
-	//	camera.Strafe(moveSpeed * deltaTime);
-	//if (inputSystem->IsKeyDown(KeyCode::A))
-	//	camera.Strafe(-moveSpeed * deltaTime);
-	//if (inputSystem->IsMouseDown(MouseButton::RBUTTON))
-	//{
-	//	camera.Yaw(inputSystem->GetMouseMoveX() * turnSpeed * deltaTime);
-	//	camera.Pitch(-inputSystem->GetMouseMoveY() * turnSpeed * deltaTime);
-	//}
+	auto inputSystem = Input::InputSystem::Get();
+	if (inputSystem->IsKeyDown(Input::KeyCode::W))
+		camera.Walk(moveSpeed * deltaTime);
+	if (inputSystem->IsKeyDown(Input::KeyCode::S))
+		camera.Walk(-moveSpeed * deltaTime);
+	if (inputSystem->IsKeyDown(Input::KeyCode::D))
+		camera.Strafe(moveSpeed * deltaTime);
+	if (inputSystem->IsKeyDown(Input::KeyCode::A))
+		camera.Strafe(-moveSpeed * deltaTime);
+	if (inputSystem->IsMouseDown(Input::MouseButton::RBUTTON))
+	{
+		camera.Yaw(inputSystem->GetMouseMoveX() * turnSpeed * deltaTime);
+		camera.Pitch(-inputSystem->GetMouseMoveY() * turnSpeed * deltaTime);
+	}
 }
 void NFGE::App::SoSoCameraControl(float turnSpeed, float moveSpeed, CameraEntry& cameraEntry, float deltaTime)
 {

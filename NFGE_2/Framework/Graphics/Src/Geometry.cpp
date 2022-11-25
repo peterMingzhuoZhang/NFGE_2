@@ -52,7 +52,7 @@ void NFGE::Graphics::GeometryPC::Prepare(MeshPC mesh, DirectionalLight* directio
 
 	mPipelineComp_Basic.mRootSignature.SetRootSignatureDesc(rootSignatureDescription.Desc_1_1, featureData.HighestVersion);
 
-	NFGE::Graphics::RegisterPipelineComponent(WorkerType::Copy, &mPipelineComp_Basic);
+	NFGE::Graphics::RegisterPipelineComponent_FirstLoad(WorkerType::Copy, &mPipelineComp_Basic);
 }
 
 void NFGE::Graphics::GeometryPC::UnLoad()
@@ -118,12 +118,12 @@ void NFGE::Graphics::GeometryPX::Prepare(MeshPX mesh, DirectionalLight* directio
 
 	mPipelineComp_Basic.mRootSignature.SetRootSignatureDesc(rootSignatureDescription.Desc_1_1, featureData.HighestVersion);
 
-	NFGE::Graphics::RegisterPipelineComponent(WorkerType::Copy, &mPipelineComp_Basic);
+	NFGE::Graphics::RegisterPipelineComponent_FirstLoad(WorkerType::Copy, &mPipelineComp_Basic);
 
 	mPipelineComp_Texture.mRootParamterIndex = 1;
 	mPipelineComp_Texture.mDescriptorOffset = 0;
 	mPipelineComp_Texture.filename = texturePath;
-	NFGE::Graphics::RegisterPipelineComponent(WorkerType::Compute, &mPipelineComp_Texture);
+	NFGE::Graphics::RegisterPipelineComponent_FirstLoad(WorkerType::Compute, &mPipelineComp_Texture);
 }
 
 void NFGE::Graphics::GeometryPX::UnLoad()

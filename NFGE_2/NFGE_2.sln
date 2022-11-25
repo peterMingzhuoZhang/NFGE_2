@@ -29,6 +29,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shaders", "Shaders", "{7095
 	ProjectSection(SolutionItems) = preProject
 		Assets\Shaders\ColorMesh.hlsl = Assets\Shaders\ColorMesh.hlsl
 		Assets\Shaders\GenerateMips_CS.hlsl = Assets\Shaders\GenerateMips_CS.hlsl
+		Assets\Shaders\SimpleDraw.hlsl = Assets\Shaders\SimpleDraw.hlsl
 		Assets\Shaders\TextureMesh.hlsl = Assets\Shaders\TextureMesh.hlsl
 	EndProjectSection
 EndProject
@@ -39,6 +40,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Graphics", "Framework\Graphics\Graphics.vcxproj", "{40BB465E-AEF9-488E-9636-78B51C64549C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GameWorld_Basic", "Demo\GameWorld_Basic\GameWorld_Basic.vcxproj", "{A8E65C19-5451-4B95-8A8A-07DE25251CA1}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Input", "Framework\Input\Input.vcxproj", "{69FEE015-2768-4DF1-8FD9-AC108582F95C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -233,6 +236,24 @@ Global
 		{A8E65C19-5451-4B95-8A8A-07DE25251CA1}.Release|x64.Build.0 = Release|x64
 		{A8E65C19-5451-4B95-8A8A-07DE25251CA1}.Release|x86.ActiveCfg = Release|Win32
 		{A8E65C19-5451-4B95-8A8A-07DE25251CA1}.Release|x86.Build.0 = Release|Win32
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Debug|ARM64.ActiveCfg = Debug|x64
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Debug|ARM64.Build.0 = Debug|x64
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Debug|x64.ActiveCfg = Debug|x64
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Debug|x64.Build.0 = Debug|x64
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Debug|x86.ActiveCfg = Debug|Win32
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Debug|x86.Build.0 = Debug|Win32
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Profile|ARM64.ActiveCfg = Debug|x64
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Profile|ARM64.Build.0 = Debug|x64
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Profile|x64.ActiveCfg = Debug|x64
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Profile|x64.Build.0 = Debug|x64
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Profile|x86.ActiveCfg = Debug|Win32
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Profile|x86.Build.0 = Debug|Win32
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Release|ARM64.ActiveCfg = Release|x64
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Release|ARM64.Build.0 = Release|x64
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Release|x64.ActiveCfg = Release|x64
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Release|x64.Build.0 = Release|x64
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Release|x86.ActiveCfg = Release|Win32
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -249,6 +270,7 @@ Global
 		{90168580-4969-48CC-B2DF-30AF6E95AAF9} = {3EEE3F21-DC04-4FFB-B26D-1D758B192D8E}
 		{40BB465E-AEF9-488E-9636-78B51C64549C} = {DA935613-C01C-4FE2-B6B8-332B75068C1D}
 		{A8E65C19-5451-4B95-8A8A-07DE25251CA1} = {3EEE3F21-DC04-4FFB-B26D-1D758B192D8E}
+		{69FEE015-2768-4DF1-8FD9-AC108582F95C} = {DA935613-C01C-4FE2-B6B8-332B75068C1D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {80151818-26EA-42CE-9E17-D6ED76A7DC88}

@@ -31,6 +31,7 @@ void GameState::Terminate()
 void GameState::Update(float deltaTime)
 {
 	mWorld.Update(deltaTime);
+	sApp.SoSoCameraControl(10, 10, mWorld.GetService<CameraService>()->GetActiveCamera(), deltaTime);
 }
 
 void GameState::Render()
@@ -42,4 +43,10 @@ void GameState::Render()
 void GameState::DebugUI()
 {
 	mWorld.DebugUI();
+	for (float i = -50.0f; i <= 50.0f; i += 1.0f)
+	{
+		NFGE::Graphics::SimpleDraw::AddLine({ i,0.0f,-50.0f }, { i,0.0f,50.0f }, NFGE::Graphics::Colors::DarkGray);
+		NFGE::Graphics::SimpleDraw::AddLine({ -50.0f,0.0f,i }, { 50.0f,0.0f,i }, NFGE::Graphics::Colors::DarkGray);
+	}
+
 }

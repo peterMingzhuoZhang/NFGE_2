@@ -58,6 +58,7 @@ namespace NFGE::Graphics
 		const std::vector<uint16_t>& GetIndices() const { return mIndices; }
 		uint32_t GetVertexCount() const { return mNumVertices; }
 		uint32_t GetIndexCount() const { return mNumIndices; }
+		uint32_t GetVertexTypeSize() const { return sizeof(VertexType); }
 
 		uint32_t GetVertexFormat() const { return VertexType::Format; }
 

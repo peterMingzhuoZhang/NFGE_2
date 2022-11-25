@@ -16,19 +16,39 @@ Microsoft::WRL::ComPtr<ID3D12Device2> NFGE::Graphics::GetDevice()
 	return NFGE::Graphics::GraphicsSystem::Get()->mDevice;
 }
 
-void NFGE::Graphics::RegisterPipelineComponent(NFGE::Graphics::WorkerType type, PipelineComponent* component)
+void NFGE::Graphics::RegisterPipelineComponent_FirstLoad(NFGE::Graphics::WorkerType type, PipelineComponent* component)
 {
     auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
     switch (type)
     {
     case NFGE::Graphics::WorkerType::Direct:
-        graphicSystem->mDirectWorker->RegisterComponent(component);
+        graphicSystem->mDirectWorker->RegisterComponent_FirstLoad(component);
         break;
     case NFGE::Graphics::WorkerType::Compute:
-        graphicSystem->mComputeWorker->RegisterComponent(component);
+        graphicSystem->mComputeWorker->RegisterComponent_FirstLoad(component);
         break;
     case NFGE::Graphics::WorkerType::Copy:
-        graphicSystem->mCopyWorker->RegisterComponent(component);
+        graphicSystem->mCopyWorker->RegisterComponent_FirstLoad(component);
+        break;
+    default:
+        ASSERT(false, "Invalid command worker type.");
+        break;
+    }
+}
+
+void NFGE::Graphics::RegisterPipelineComponent_Update(NFGE::Graphics::WorkerType type, PipelineComponent* component)
+{
+    auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
+    switch (type)
+    {
+    case NFGE::Graphics::WorkerType::Direct:
+        graphicSystem->mDirectWorker->RegisterComponent_Update(component);
+        break;
+    case NFGE::Graphics::WorkerType::Compute:
+        graphicSystem->mComputeWorker->RegisterComponent_Update(component);
+        break;
+    case NFGE::Graphics::WorkerType::Copy:
+        graphicSystem->mCopyWorker->RegisterComponent_Update(component);
         break;
     default:
         ASSERT(false, "Invalid command worker type.");

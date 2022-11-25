@@ -19,7 +19,6 @@ void NFGE::Graphics::PipelineComponent_Basic<T>::GetLoad(PipelineWorker& worker)
 	ASSERT(!isLoaded, "Loading component second time is not allowed.");
 	auto device = NFGE::Graphics::GetDevice();
 	// Upload vertex buffer data.
-	ComPtr<ID3D12Resource> intermediateVertexBuffer;
 	auto& vertices = mMesh.GetVertices();
 	worker.CopyVertexBuffer(mVertexBuffer, vertices);
 	auto& indices = mMesh.GetIndices();
@@ -69,7 +68,7 @@ void NFGE::Graphics::PipelineComponent_Basic<T>::GetLoad(PipelineWorker& worker)
 
 	pipelineStateStream.pRootSignature = mRootSignature.GetRootSignature().Get();
 	pipelineStateStream.InputLayout = { vertexLayout.data(), static_cast<UINT>(vertexLayout.size()) };
-	pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	pipelineStateStream.PrimitiveTopologyType = mD3d12Topology;
 	pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vertexShaderBlob.Get());
 	pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(pixelShaderBlob.Get());
 	pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
@@ -84,14 +83,31 @@ void NFGE::Graphics::PipelineComponent_Basic<T>::GetLoad(PipelineWorker& worker)
 }
 
 template<typename T>
+void NFGE::Graphics::PipelineComponent_Basic<T>::GetUpdate(PipelineWorker& worker)
+{
+	// Upload vertex buffer data.
+	auto& vertices = mMesh.GetVertices();
+	worker.CopyVertexBuffer(mVertexBuffer, vertices);
+	auto& indices = mMesh.GetIndices();
+	worker.CopyIndexBuffer(mIndexBuffer, indices);
+}
+
+template<typename T>
 void NFGE::Graphics::PipelineComponent_Basic<T>::GetBind(PipelineWorker& worker)
 {
 	worker.SetPipelineState(mPipelineState);
 	worker.SetGraphicsRootSignature(mRootSignature);
-	worker.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	worker.SetPrimitiveTopology(mD3dTopology);
 	worker.SetVertexBuffer(0, mVertexBuffer);
 	worker.SetIndexBuffer(mIndexBuffer);
 
+}
+
+template<typename T>
+void NFGE::Graphics::PipelineComponent_Basic<T>::UpdateVertices(const std::vector<typename T::VertexType>& vertexData, uint32_t numVertices)
+{
+	auto it = vertexData.begin() + numVertices;
+	mMesh.mVertices.assign(vertexData.begin(), it);
 }
 
 // Explicit instantiations

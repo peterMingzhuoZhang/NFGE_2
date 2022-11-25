@@ -68,8 +68,8 @@ namespace NFGE::Graphics {
 
 		
 
-		void BeginPrepare();
-		void EndPrepare();
+		void BeginUpload();
+		void EndUpload();
 		void BeginMasterRender();
 		ComPtr<ID3D12GraphicsCommandList2> GetCurrentCommandList() const { return mCurrentCommandList; }
 		void SetCurrentCommandList(ComPtr<ID3D12GraphicsCommandList2> comandList) { mCurrentCommandList = comandList; }
@@ -104,7 +104,8 @@ namespace NFGE::Graphics {
 
 		friend LRESULT CALLBACK GraphicsSystemMessageHandler(HWND window, UINT message, WPARAM wPrarm, LPARAM lParam);
 		friend ComPtr<ID3D12Device2> GetDevice();
-		friend void RegisterPipelineComponent(NFGE::Graphics::WorkerType type, PipelineComponent* component);
+		friend void RegisterPipelineComponent_FirstLoad(NFGE::Graphics::WorkerType type, PipelineComponent* component);
+		friend void RegisterPipelineComponent_Update(NFGE::Graphics::WorkerType type, PipelineComponent* component);
 		friend PipelineWorker* GetWorker(NFGE::Graphics::WorkerType type);
 		friend uint8_t GetFrameCount();
 		friend void Flush();

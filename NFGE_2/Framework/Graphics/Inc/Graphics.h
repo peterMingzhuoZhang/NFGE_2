@@ -32,6 +32,7 @@
 #include "Resource.h"
 #include "ResourceStateTracker.h"
 #include "RootSignature.h"
+#include "SimpleDraw.h"
 #include "SpriteRenderer.h"
 #include "Texture.h"
 #include "TextureManager.h"

@@ -19,6 +19,7 @@ namespace NFGE::Graphics
 	{
 		bool isLoaded = false;
 		virtual void GetLoad(PipelineWorker& worker) = 0;
+		virtual void GetUpdate(PipelineWorker& worker) {};
 		virtual void GetBind(PipelineWorker& worker) = 0;
 	};
 
@@ -38,9 +39,14 @@ namespace NFGE::Graphics
 		std::wstring mShaderFilename;
 
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPipelineState;
+		D3D12_PRIMITIVE_TOPOLOGY_TYPE mD3d12Topology = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		D3D_PRIMITIVE_TOPOLOGY mD3dTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		
 		void GetLoad(PipelineWorker& worker) override;
+		void GetUpdate(PipelineWorker& worker) override;
 		void GetBind(PipelineWorker& worker) override;
+
+		void UpdateVertices(const std::vector<typename T::VertexType>& vertexData, uint32_t numVertices);
 	};
 
 	struct PipelineComponent_SingleTexture : public PipelineComponent

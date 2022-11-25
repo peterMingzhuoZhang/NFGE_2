@@ -38,7 +38,8 @@ namespace NFGE::Graphics
         void Initialize();
         void Terminate();
 
-        void RegisterComponent(PipelineComponent* component);
+        void RegisterComponent_FirstLoad(PipelineComponent* component);
+        void RegisterComponent_Update(PipelineComponent* component);
         void BeginWork();
         void ProcessWork();
         void EndWork();
@@ -92,7 +93,7 @@ namespace NFGE::Graphics
         }
 
 
-        void SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitiveTopology);
+        void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY primitiveTopology);
 
         void ClearTexture(const Texture& texture, const float clearColor[4]);
 
@@ -234,7 +235,8 @@ namespace NFGE::Graphics
 		TrackedObjects mTrackedObjects;
 
         using TrackedPipelineComponents = std::vector<PipelineComponent*>;
-        TrackedPipelineComponents mTrackedPipelineComponents;
+        TrackedPipelineComponents mTrackedPipelineComponents_FirstLoad;
+        TrackedPipelineComponents mTrackedPipelineComponents_Update;
 	};
 	
 }

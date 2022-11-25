@@ -229,13 +229,13 @@ void GraphicsSystem::Terminate()
 	sWindowMessageHandler.Unhook();
 }
 
-void NFGE::Graphics::GraphicsSystem::BeginPrepare()
+void NFGE::Graphics::GraphicsSystem::BeginUpload()
 {
 	mCopyWorker->BeginWork();
 	mComputeWorker->BeginWork();
 }
 
-void NFGE::Graphics::GraphicsSystem::EndPrepare()
+void NFGE::Graphics::GraphicsSystem::EndUpload()
 {
 	mCopyWorker->ProcessWork();
 	mCopyWorker->EndWork();

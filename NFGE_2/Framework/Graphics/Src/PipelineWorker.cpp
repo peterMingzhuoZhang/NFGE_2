@@ -63,9 +63,14 @@ void NFGE::Graphics::PipelineWorker::Terminate()
     }
 }
 
-void NFGE::Graphics::PipelineWorker::RegisterComponent(PipelineComponent* component)
+void NFGE::Graphics::PipelineWorker::RegisterComponent_FirstLoad(PipelineComponent* component)
 {
-    mTrackedPipelineComponents.push_back(component);
+    mTrackedPipelineComponents_FirstLoad.push_back(component);
+}
+
+void NFGE::Graphics::PipelineWorker::RegisterComponent_Update(PipelineComponent* component)
+{
+    mTrackedPipelineComponents_Update.push_back(component);
 }
 
 void NFGE::Graphics::PipelineWorker::BeginWork()
@@ -77,9 +82,13 @@ void NFGE::Graphics::PipelineWorker::BeginWork()
 
 void NFGE::Graphics::PipelineWorker::ProcessWork()
 {
-    for (auto& piplineComponent : mTrackedPipelineComponents)
+    for (auto& piplineComponent : mTrackedPipelineComponents_FirstLoad)
     {
         piplineComponent->GetLoad(*this);
+    }
+    for (auto& piplineComponent : mTrackedPipelineComponents_Update)
+    {
+        piplineComponent->GetUpdate(*this);
     }
 }
 
@@ -90,7 +99,8 @@ void NFGE::Graphics::PipelineWorker::EndWork()
     auto signal = mCommandQueue->ExecuteCommandList(mCurrentCommandList, *this);
     mCommandQueue->WaitForFenceValue(signal);
     mCurrentCommandList = nullptr;
-    mTrackedPipelineComponents.clear();
+    mTrackedPipelineComponents_FirstLoad.clear();
+    mTrackedPipelineComponents_Update.clear();
     Reset();
     
 }
@@ -197,7 +207,7 @@ void NFGE::Graphics::PipelineWorker::CopyIndexBuffer(IndexBuffer& indexBuffer, s
     CopyBuffer(indexBuffer, numIndicies, indexSizeInBytes, indexBufferData);
 }
 
-void NFGE::Graphics::PipelineWorker::SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitiveTopology)
+void NFGE::Graphics::PipelineWorker::SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY primitiveTopology)
 {
     ASSERT(mCurrentCommandList, "Current PipleineWorker is not Begin work.");
     mCurrentCommandList->IASetPrimitiveTopology(primitiveTopology);
@@ -614,6 +624,19 @@ void NFGE::Graphics::PipelineWorker::CopyBuffer(Buffer& buffer, size_t numElemen
     if (bufferSize == 0)
     {
         // This will result in a NULL resource (which may be desired to define a default null resource).
+        // Default NULL resource
+        auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+        auto resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(1, flags);
+        ThrowIfFailed(device->CreateCommittedResource(
+            &heapProperties,
+            D3D12_HEAP_FLAG_NONE,
+            &resourceDesc,
+            D3D12_RESOURCE_STATE_COMMON,
+            nullptr,
+            IID_PPV_ARGS(&d3d12Resource)));
+
+        // Add the resource to the global resource state tracker.
+        ResourceStateTracker::AddGlobalResourceState(d3d12Resource.Get(), D3D12_RESOURCE_STATE_COMMON);
     }
     else
     {

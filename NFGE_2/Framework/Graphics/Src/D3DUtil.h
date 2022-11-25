@@ -10,7 +10,8 @@ namespace NFGE::Graphics
 	class PipelineWorker;
 
 	Microsoft::WRL::ComPtr<ID3D12Device2> GetDevice();
-	void RegisterPipelineComponent(NFGE::Graphics::WorkerType type, PipelineComponent* component);
+	void RegisterPipelineComponent_FirstLoad(NFGE::Graphics::WorkerType type, PipelineComponent* component);
+	void RegisterPipelineComponent_Update(NFGE::Graphics::WorkerType type, PipelineComponent* component);
 	PipelineWorker* GetWorker(NFGE::Graphics::WorkerType type);
 	uint8_t GetFrameCount();
 	void Flush();

@@ -162,6 +162,7 @@
     <ClInclude Include="Inc\Resource.h" />
     <ClInclude Include="Inc\ResourceStateTracker.h" />
     <ClInclude Include="Inc\RootSignature.h" />
+    <ClInclude Include="Inc\SimpleDraw.h" />
     <ClInclude Include="Inc\SpriteRenderer.h" />
     <ClInclude Include="Inc\Texture.h" />
     <ClInclude Include="Inc\TextureManager.h" />
@@ -197,6 +198,7 @@
     <ClCompile Include="Src\Resource.cpp" />
     <ClCompile Include="Src\ResourceStateTracker.cpp" />
     <ClCompile Include="Src\RootSignature.cpp" />
+    <ClCompile Include="Src\SimpleDraw.cpp" />
     <ClCompile Include="Src\SpriteRenderer.cpp" />
     <ClCompile Include="Src\Texture.cpp" />
     <ClCompile Include="Src\TextureManager.cpp" />
