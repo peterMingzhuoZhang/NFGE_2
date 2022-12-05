@@ -180,10 +180,14 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 	mDevice = CreateDevice(dxgiAdapter4);
 	if (mDevice)
 	{
-
 		mDirectWorker = std::make_unique<PipelineWorker>(WorkerType::Direct);
 		mComputeWorker = std::make_unique<PipelineWorker>(WorkerType::Compute);
 		mCopyWorker = std::make_unique<PipelineWorker>(WorkerType::Copy);
+
+		// Raytracing support check
+		D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureSupportData = {};
+		mIsRayTracingSupport = SUCCEEDED(mDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &featureSupportData, sizeof(featureSupportData)))
+			&& featureSupportData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
 	}
 	
 	mWindowRect = window.GetWindowRECT();
@@ -542,7 +546,6 @@ namespace
 			ThrowIfFailed(pInfoQueue->PushStorageFilter(&NewFilter));
 		}
 #endif
-
 		return d3d12Device2;
 	}
 

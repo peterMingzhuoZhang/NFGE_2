@@ -159,6 +159,7 @@ namespace NFGE::Graphics {
 		RECT mWindowRect{};
 		SIZE_T mMaxVideoMemory{ 0 };
 		uint64_t mFrameCount = 0;
+		bool mIsRayTracingSupport = false;
 	};
 
 } // namespace NFGE::Graphics
