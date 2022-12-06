@@ -10,6 +10,7 @@
 #include "Mesh.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
+#include "../RaytracingHlslCompat.h"
 
 namespace NFGE::Graphics
 {
@@ -58,5 +59,57 @@ namespace NFGE::Graphics
 
 		void GetLoad(PipelineWorker& worker) override;
 		void GetBind(PipelineWorker& worker) override;
+	};
+
+	struct PipelineComponent_RayTracing: public PipelineComponent
+	{
+		// D3D 12 control
+		Microsoft::WRL::ComPtr<ID3D12Device5> mDxrDevice;
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> mDxrCommandList;
+		Microsoft::WRL::ComPtr<ID3D12StateObject> mDxrStateObject;
+		// Root signatures
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRaytracingGlobalRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRaytracingLocalRootSignature;
+		// Descriptors
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDescriptorHeap;
+		UINT mDescriptorsAllocated;
+		UINT mDescriptorSize;
+		// Raytracing scene
+		RayGenConstantBuffer mRayGenCB;
+		// Acceleration structure
+		Microsoft::WRL::ComPtr<ID3D12Resource> mAccelerationStructure;
+		Microsoft::WRL::ComPtr<ID3D12Resource> mBottomLevelAccelerationStructure;
+		Microsoft::WRL::ComPtr<ID3D12Resource> mTopLevelAccelerationStructure;
+
+		// Shader tables
+		static const wchar_t* sHitGroupName;
+		static const wchar_t* sRaygenShaderName;
+		static const wchar_t* sClosestHitShaderName;
+		static const wchar_t* sMissShaderName;
+		Microsoft::WRL::ComPtr<ID3D12Resource> mMissShaderTable;
+		Microsoft::WRL::ComPtr<ID3D12Resource> mHitGroupShaderTable;
+		Microsoft::WRL::ComPtr<ID3D12Resource> mRayGenShaderTable;
+
+		// Gemotry
+		struct Vertex { float v1, v2, v3; };
+		MeshBase<Vertex> mMesh;
+		VertexBuffer mVertexBuffer;
+		IndexBuffer mIndexBuffer;
+
+		// Raytracing output
+		Microsoft::WRL::ComPtr<ID3D12Resource> mRaytracingOutput;
+		D3D12_GPU_DESCRIPTOR_HANDLE mRaytracingOutputResourceUAVGpuDescriptor;
+		UINT mRaytracingOutputResourceUAVDescriptorHeapIndex;
+
+		void GetLoad(PipelineWorker& worker) override;
+
+	private:
+		void CreateDescriptorHeap();
+		void CreateRaytracingPSO();
+		void BuildAccelerationStructures(PipelineWorker& worker);
+		void BuildShadeTables();
+		void CreateRaytracingOutputResource();
+		void SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, Microsoft::WRL::ComPtr<ID3D12RootSignature>* rootSig);
+		UINT AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse);
 	};
 }

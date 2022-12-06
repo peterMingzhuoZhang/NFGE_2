@@ -32,7 +32,7 @@ namespace
 
 	// D3d12 object creation
 	ComPtr<IDXGIAdapter4> GetAdapter(bool useWarp, SIZE_T dedicatedVideoMemory, SIZE_T& videoMemoryRecord);
-	ComPtr<ID3D12Device2> CreateDevice(ComPtr<IDXGIAdapter4> adapter);
+	ComPtr<ID3D12Device5> CreateDevice(ComPtr<IDXGIAdapter4> adapter);
 	ComPtr<ID3D12CommandQueue> CreateCommandQueue(ComPtr<ID3D12Device> device, D3D12_COMMAND_LIST_TYPE type);
 	ComPtr<IDXGISwapChain4> CreateSwapChain(HWND hWnd, ComPtr<ID3D12CommandQueue> commandQueue, uint32_t width, uint32_t height, uint32_t bufferCount);
 	ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(ComPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors);
@@ -167,6 +167,44 @@ void GraphicsSystem::UpdateBufferResource(Microsoft::WRL::ComPtr<ID3D12GraphicsC
 	}
 }
 
+void NFGE::Graphics::GraphicsSystem::AllocateUAVBuffer(ID3D12Device* pDevice, UINT64 bufferSize, ID3D12Resource** ppResource, D3D12_RESOURCE_STATES initialResourceState, const wchar_t* resourceName)
+{
+	auto uploadHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	ThrowIfFailed(pDevice->CreateCommittedResource(
+		&uploadHeapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&bufferDesc,
+		initialResourceState,
+		nullptr,
+		IID_PPV_ARGS(ppResource)));
+	if (resourceName)
+	{
+		(*ppResource)->SetName(resourceName);
+	}
+}
+
+void NFGE::Graphics::GraphicsSystem::AllocateUploadBuffer(ID3D12Device* pDevice, void* pData, UINT64 datasize, ID3D12Resource** ppResource, const wchar_t* resourceName)
+{
+	auto uploadHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+	auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(datasize);
+	ThrowIfFailed(pDevice->CreateCommittedResource(
+		&uploadHeapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&bufferDesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(ppResource)));
+	if (resourceName)
+	{
+		(*ppResource)->SetName(resourceName);
+	}
+	void* pMappedData;
+	(*ppResource)->Map(0, nullptr, &pMappedData);
+	memcpy(pMappedData, pData, datasize);
+	(*ppResource)->Unmap(0, nullptr);
+}
+
 GraphicsSystem::~GraphicsSystem()
 {
 	//ASSERT(mD3ddDevice == nullptr, "[Graphics::GraphicsSystem] Terminate() must be called to clean up!");
@@ -184,7 +222,7 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 		mComputeWorker = std::make_unique<PipelineWorker>(WorkerType::Compute);
 		mCopyWorker = std::make_unique<PipelineWorker>(WorkerType::Copy);
 
-		// Raytracing support check
+		
 		D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureSupportData = {};
 		mIsRayTracingSupport = SUCCEEDED(mDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &featureSupportData, sizeof(featureSupportData)))
 			&& featureSupportData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
@@ -203,8 +241,6 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 		mBackBuffers[i].SetName(L"Backbuffer[" + std::to_wstring(i) + L"]");
 	}
 	
-	
-
 	mFullScreen = fullscreen;
 
 	// Hook application to windows procedure
@@ -505,15 +541,15 @@ namespace
 		return dxgiAdapter4;
 	}
 
-	Microsoft::WRL::ComPtr<ID3D12Device2> CreateDevice(Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter)
+	Microsoft::WRL::ComPtr<ID3D12Device5> CreateDevice(Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter)
 	{
-		ComPtr<ID3D12Device2> d3d12Device2;
-		ThrowIfFailed(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&d3d12Device2)));
+		ComPtr<ID3D12Device5> d3d12Device5;
+		ThrowIfFailed(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&d3d12Device5)));
 
 		// Enable debug messages in debug mode.
 #if defined(_DEBUG)
 		ComPtr<ID3D12InfoQueue> pInfoQueue;
-		if (SUCCEEDED(d3d12Device2.As(&pInfoQueue)))
+		if (SUCCEEDED(d3d12Device5.As(&pInfoQueue)))
 		{
 			pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
 			pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
@@ -546,7 +582,7 @@ namespace
 			ThrowIfFailed(pInfoQueue->PushStorageFilter(&NewFilter));
 		}
 #endif
-		return d3d12Device2;
+		return d3d12Device5;
 	}
 
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> CreateCommandQueue(Microsoft::WRL::ComPtr<ID3D12Device> device, D3D12_COMMAND_LIST_TYPE type)

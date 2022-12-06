@@ -56,6 +56,9 @@ namespace NFGE::Graphics {
 			size_t numElements, size_t elementSize, const void* bufferData,
 			D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
 
+		static void AllocateUAVBuffer(ID3D12Device* pDevice, UINT64 bufferSize, ID3D12Resource** ppResource, D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_COMMON, const wchar_t* resourceName = nullptr);
+		static void AllocateUploadBuffer(ID3D12Device* pDevice, void* pData, UINT64 datasize, ID3D12Resource** ppResource, const wchar_t* resourceName = nullptr);
+
 	public:
 		GraphicsSystem() = default;
 		~GraphicsSystem();
@@ -124,7 +127,7 @@ namespace NFGE::Graphics {
 
 		// DirectX 12 Objects
 		// Allocation and Control
-		ComPtr<ID3D12Device2> mDevice{ nullptr };
+		ComPtr<ID3D12Device5> mDevice{ nullptr };
 		ComPtr<ID3D12GraphicsCommandList2> mCurrentCommandList{ nullptr };
 
 		std::unique_ptr<PipelineWorker> mDirectWorker{ nullptr };

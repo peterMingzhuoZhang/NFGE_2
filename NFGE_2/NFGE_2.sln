@@ -29,6 +29,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shaders", "Shaders", "{7095
 	ProjectSection(SolutionItems) = preProject
 		Assets\Shaders\ColorMesh.hlsl = Assets\Shaders\ColorMesh.hlsl
 		Assets\Shaders\GenerateMips_CS.hlsl = Assets\Shaders\GenerateMips_CS.hlsl
+		Assets\Shaders\Raytracing.hlsl = Assets\Shaders\Raytracing.hlsl
 		Assets\Shaders\SimpleDraw.hlsl = Assets\Shaders\SimpleDraw.hlsl
 		Assets\Shaders\TextureMesh.hlsl = Assets\Shaders\TextureMesh.hlsl
 	EndProjectSection

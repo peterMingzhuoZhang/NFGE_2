@@ -41,3 +41,17 @@ inline void ThrowIfFailed(HRESULT hr)
 		throw std::exception();
 	}
 }
+
+inline void ThrowIfFailed(HRESULT hr, const wchar_t* msg)
+{
+	if (FAILED(hr))
+	{
+		OutputDebugString(msg);
+		throw std::exception();
+	}
+}
+
+inline UINT Align(UINT size, UINT alignment)
+{
+	return (size + (alignment - 1)) & ~(alignment - 1);
+}
