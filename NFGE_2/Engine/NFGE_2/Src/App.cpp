@@ -86,10 +86,10 @@ void NFGE::App::Run(AppConfig appConfig)
 			ExecuteSpriteCommand();
 			Graphics::SpriteRenderer::Get()->EndRender();
 
-			graphicSystem->BeginUpload();
+			graphicSystem->BeginUpdate();
 			mCurrentState->DebugUI();
 			Graphics::SimpleDraw::RenderUpdate();
-			graphicSystem->EndUpload();
+			graphicSystem->EndUpdate();
 
 			Graphics::SimpleDraw::Render(GetMainCamera());
 		}

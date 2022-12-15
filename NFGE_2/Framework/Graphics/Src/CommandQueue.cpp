@@ -29,6 +29,11 @@ NFGE::Graphics::CommandQueue::CommandQueue(Microsoft::WRL::ComPtr<ID3D12Device2>
 
 	mFenceEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 	ASSERT(mFenceEvent, "Failed to create fence event handle.");
+
+	mDedicateCommandAllocator = CreateCommandAllocator();
+	mDedicateCommandList = CreateCommandList(mDedicateCommandAllocator);
+	mDedicateCommandList->Close();
+	//mDedicateCommandAllocator->Release();
 }
 
 NFGE::Graphics::CommandQueue::~CommandQueue()
@@ -39,8 +44,22 @@ NFGE::Graphics::CommandQueue::~CommandQueue()
 	CloseHandle(mFenceEvent);
 }
 
-Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> NFGE::Graphics::CommandQueue::GetCommandList()
+Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> NFGE::Graphics::CommandQueue::GetDedicateCommandList()
 {
+	ThrowIfFailed(mDedicateCommandAllocator->Reset());
+	ThrowIfFailed(mDedicateCommandList->Reset(mDedicateCommandAllocator.Get(), nullptr));
+	ThrowIfFailed(mDedicateCommandList->SetPrivateDataInterface(__uuidof(ID3D12CommandAllocator), mDedicateCommandAllocator.Get()));
+
+	return mDedicateCommandList;
+}
+
+Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> NFGE::Graphics::CommandQueue::GetCommandList(bool isDedicate)
+{
+	if (isDedicate)
+	{
+		return GetDedicateCommandList();
+	}
+
 	ComPtr<ID3D12CommandAllocator> commandAllocator;
 	ComPtr<ID3D12GraphicsCommandList2> commandList;
 
@@ -79,7 +98,7 @@ uint64_t NFGE::Graphics::CommandQueue::ExecuteCommandList(Microsoft::WRL::ComPtr
 {
 	// Dealing with pending barriers
 	ResourceStateTracker::Lock();
-	auto pendingBarriersCommandList = GetCommandList();
+	auto pendingBarriersCommandList = GetCommandList(false);
 	ID3D12CommandAllocator* commandAllocator_pending;
 	UINT dataSize_pending = sizeof(commandAllocator_pending);
 	ThrowIfFailed(pendingBarriersCommandList->GetPrivateData(__uuidof(ID3D12CommandAllocator), &dataSize_pending, &commandAllocator_pending));
@@ -97,24 +116,24 @@ uint64_t NFGE::Graphics::CommandQueue::ExecuteCommandList(Microsoft::WRL::ComPtr
 	commandAllocator_pending->Release();
 	ResourceStateTracker::Unlock();
 
-	ID3D12CommandAllocator* commandAllocator;
-	UINT dataSize = sizeof(commandAllocator);
-	ThrowIfFailed(commandList->GetPrivateData(__uuidof(ID3D12CommandAllocator), &dataSize, &commandAllocator));
+	//ID3D12CommandAllocator* commandAllocator;
+	//UINT dataSize = sizeof(commandAllocator);
+	//ThrowIfFailed(commandList->GetPrivateData(__uuidof(ID3D12CommandAllocator), &dataSize, &commandAllocator));
 
 	ID3D12CommandList* const commandLists[] = {
-		commandList.Get()
+		mDedicateCommandList.Get()
 	};
 
 	mD3d12CommandQueue->ExecuteCommandLists(1, commandLists);
 	uint64_t fenceValue = Signal();
 
-	mCommandAllocatorQueue.emplace(CommandAllocatorEntry{ fenceValue, Microsoft::WRL::ComPtr<ID3D12CommandAllocator>(commandAllocator) });
-	mCommandListQueue.push(commandList);
+	//mCommandAllocatorQueue.emplace(CommandAllocatorEntry{ fenceValue, Microsoft::WRL::ComPtr<ID3D12CommandAllocator>(commandAllocator) });
+	//mCommandListQueue.push(commandList);
 
 	// The ownership of the command allocator has been transferred to the ComPtr
 	// in the command allocator queue. It is safe to release the reference 
 	// in this temporary COM pointer here.
-	commandAllocator->Release();
+	//mDedicateCommandAllocator->Release();
 
 	return fenceValue;
 }

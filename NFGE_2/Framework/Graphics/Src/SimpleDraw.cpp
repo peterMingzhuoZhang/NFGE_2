@@ -91,8 +91,8 @@ namespace
 		mPipelineComp_Basic_Line.mRootSignature.SetRootSignatureDesc(rootSignatureDescription.Desc_1_1, featureData.HighestVersion);
 		mPipelineComp_Basic_Face.mRootSignature.SetRootSignatureDesc(rootSignatureDescription.Desc_1_1, featureData.HighestVersion);
 
-		NFGE::Graphics::RegisterPipelineComponent_FirstLoad(WorkerType::Copy, &mPipelineComp_Basic_Line);
-		NFGE::Graphics::RegisterPipelineComponent_FirstLoad(WorkerType::Copy, &mPipelineComp_Basic_Face);
+		NFGE::Graphics::RegisterPipelineComponent_Load(WorkerType::Copy, &mPipelineComp_Basic_Line);
+		NFGE::Graphics::RegisterPipelineComponent_Load(WorkerType::Copy, &mPipelineComp_Basic_Face);
 
 		mInitialized = true;
 	}

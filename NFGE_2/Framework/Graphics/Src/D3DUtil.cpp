@@ -16,19 +16,19 @@ Microsoft::WRL::ComPtr<ID3D12Device2> NFGE::Graphics::GetDevice()
 	return NFGE::Graphics::GraphicsSystem::Get()->mDevice;
 }
 
-void NFGE::Graphics::RegisterPipelineComponent_FirstLoad(NFGE::Graphics::WorkerType type, PipelineComponent* component)
+void NFGE::Graphics::RegisterPipelineComponent_Load(NFGE::Graphics::WorkerType type, PipelineComponent* component)
 {
     auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
     switch (type)
     {
     case NFGE::Graphics::WorkerType::Direct:
-        graphicSystem->mDirectWorker->RegisterComponent_FirstLoad(component);
+        graphicSystem->mDirectWorker->RegisterComponent_Load(component);
         break;
     case NFGE::Graphics::WorkerType::Compute:
-        graphicSystem->mComputeWorker->RegisterComponent_FirstLoad(component);
+        graphicSystem->mComputeWorker->RegisterComponent_Load(component);
         break;
     case NFGE::Graphics::WorkerType::Copy:
-        graphicSystem->mCopyWorker->RegisterComponent_FirstLoad(component);
+        graphicSystem->mCopyWorker->RegisterComponent_Load(component);
         break;
     default:
         ASSERT(false, "Invalid command worker type.");
@@ -56,6 +56,12 @@ void NFGE::Graphics::RegisterPipelineComponent_Update(NFGE::Graphics::WorkerType
     }
 }
 
+void NFGE::Graphics::RegisterRaytracingComponent(PipelineComponent* component)
+{
+    auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
+    graphicSystem->mRaytracingWorker->RegisterComponent_Load(component);
+}
+
 NFGE::Graphics::PipelineWorker* NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType type)
 {
     PipelineWorker* worker = nullptr;
@@ -76,6 +82,16 @@ NFGE::Graphics::PipelineWorker* NFGE::Graphics::GetWorker(NFGE::Graphics::Worker
         break;
     }
 
+    ASSERT(worker, "Worker should not be nullptr.");
+    graphicSystem->mLastWorker = worker;
+    return worker;
+}
+
+NFGE::Graphics::PipelineWorker* NFGE::Graphics::GetRaytracingWorker()
+{
+    PipelineWorker* worker = nullptr;
+    auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
+    worker = graphicSystem->mRaytracingWorker.get();
     ASSERT(worker, "Worker should not be nullptr.");
     graphicSystem->mLastWorker = worker;
     return worker;

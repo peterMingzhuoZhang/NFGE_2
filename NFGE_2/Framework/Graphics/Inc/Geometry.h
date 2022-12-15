@@ -61,4 +61,18 @@ namespace NFGE::Graphics
 		void Render(const NFGE::Graphics::Camera& camera);
 		void DebugUI();
 	};
+
+	class GeometryRaytracing
+	{
+	public:
+		PipelineComponent_RayTracing mPipelineComp_RT;
+		GeometryMeshContext mMeshContext;
+
+	public:
+		void Prepare(const std::vector<PipelineComponent_RayTracing::Vertex> vertices, const std::vector<UINT16> indices, DirectionalLight* directionLight);
+		void UnLoad();
+		void Update(float deltaTime);
+		void Render(const NFGE::Graphics::Camera& camera);
+		void DebugUI();
+	};
 }

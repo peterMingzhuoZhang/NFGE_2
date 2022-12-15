@@ -17,6 +17,7 @@
 #include "RootSignature.h"
 #include "PipelineWorker.h"
 #include "SpriteRenderer.h"
+#include "PipelineComponent.h"
 
 using namespace NFGE;
 using namespace NFGE::Graphics;
@@ -221,8 +222,8 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 		mDirectWorker = std::make_unique<PipelineWorker>(WorkerType::Direct);
 		mComputeWorker = std::make_unique<PipelineWorker>(WorkerType::Compute);
 		mCopyWorker = std::make_unique<PipelineWorker>(WorkerType::Copy);
+		mRaytracingWorker = std::make_unique<PipelineWorker>(WorkerType::Direct);
 
-		
 		D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureSupportData = {};
 		mIsRayTracingSupport = SUCCEEDED(mDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &featureSupportData, sizeof(featureSupportData)))
 			&& featureSupportData.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
@@ -273,6 +274,8 @@ void NFGE::Graphics::GraphicsSystem::BeginUpload()
 {
 	mCopyWorker->BeginWork();
 	mComputeWorker->BeginWork();
+	mRaytracingWorker->BeginWork();
+	mDirectWorker->BeginWork();
 }
 
 void NFGE::Graphics::GraphicsSystem::EndUpload()
@@ -281,6 +284,27 @@ void NFGE::Graphics::GraphicsSystem::EndUpload()
 	mCopyWorker->EndWork();
 	mComputeWorker->ProcessWork();
 	mComputeWorker->EndWork();
+	mRaytracingWorker->ProcessWork();
+	mRaytracingWorker->EndWork();
+	mDirectWorker->ProcessWork();
+	mDirectWorker->EndWork();
+}
+
+void NFGE::Graphics::GraphicsSystem::BeginUpdate()
+{
+	mCopyWorker->BeginWork();
+	mComputeWorker->BeginWork();
+	mRaytracingWorker->BeginWork();
+}
+
+void NFGE::Graphics::GraphicsSystem::EndUpdate()
+{
+	mCopyWorker->ProcessWork();
+	mCopyWorker->EndWork();
+	mComputeWorker->ProcessWork();
+	mComputeWorker->EndWork();
+	mRaytracingWorker->ProcessWork();
+	mRaytracingWorker->EndWork();
 }
 
 void GraphicsSystem::BeginMasterRender()
@@ -403,7 +427,17 @@ void NFGE::Graphics::GraphicsSystem::Resize(uint32_t width, uint32_t height)
 
 		UpdateRenderTargetViews();
 		UpdateDepthStencilView();
+
+		for(auto RTcomponent : mRTComponent)
+		{
+			RTcomponent->OnSizeChanged(width, height);
+		}
 	}
+}
+
+void NFGE::Graphics::GraphicsSystem::RegisterResizeComponent(PipelineComponent_RayTracing* RTComponent)
+{
+	mRTComponent.push_back(RTComponent);
 }
 
 uint32_t NFGE::Graphics::GraphicsSystem::GetBackBufferWidth() const
@@ -481,6 +515,7 @@ void NFGE::Graphics::GraphicsSystem::Flush()
 	mCopyWorker->GetCommandQueue()->Flush();
 	mComputeWorker->GetCommandQueue()->Flush();
 	mDirectWorker->GetCommandQueue()->Flush();
+	mRaytracingWorker->GetCommandQueue()->Flush();
 }
 
 // Internal linkage functions defination

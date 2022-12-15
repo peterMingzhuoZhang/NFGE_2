@@ -63,9 +63,9 @@ void NFGE::Graphics::PipelineWorker::Terminate()
     }
 }
 
-void NFGE::Graphics::PipelineWorker::RegisterComponent_FirstLoad(PipelineComponent* component)
+void NFGE::Graphics::PipelineWorker::RegisterComponent_Load(PipelineComponent* component)
 {
-    mTrackedPipelineComponents_FirstLoad.push_back(component);
+    mTrackedPipelineComponents_Load.push_back(component);
 }
 
 void NFGE::Graphics::PipelineWorker::RegisterComponent_Update(PipelineComponent* component)
@@ -82,7 +82,7 @@ void NFGE::Graphics::PipelineWorker::BeginWork()
 
 void NFGE::Graphics::PipelineWorker::ProcessWork()
 {
-    for (auto& piplineComponent : mTrackedPipelineComponents_FirstLoad)
+    for (auto& piplineComponent : mTrackedPipelineComponents_Load)
     {
         piplineComponent->GetLoad(*this);
     }
@@ -99,10 +99,18 @@ void NFGE::Graphics::PipelineWorker::EndWork()
     auto signal = mCommandQueue->ExecuteCommandList(mCurrentCommandList, *this);
     mCommandQueue->WaitForFenceValue(signal);
     mCurrentCommandList = nullptr;
-    mTrackedPipelineComponents_FirstLoad.clear();
+    mTrackedPipelineComponents_Load.clear();
     mTrackedPipelineComponents_Update.clear();
     Reset();
-    
+}
+
+void NFGE::Graphics::PipelineWorker::RefreshCommandList()
+{
+    //mCurrentCommandList->Close();
+    ID3D12CommandAllocator* commandAllocator;
+    UINT dataSize_pending = sizeof(commandAllocator);
+    ThrowIfFailed(mCurrentCommandList->GetPrivateData(__uuidof(ID3D12CommandAllocator), &dataSize_pending, &commandAllocator));
+    mCurrentCommandList->Reset(commandAllocator, nullptr);
 }
 
 void NFGE::Graphics::PipelineWorker::TransitionBarrier(const Resource& resource, D3D12_RESOURCE_STATES stateAfter, UINT subresource, bool flushBarriers)
@@ -589,7 +597,7 @@ bool NFGE::Graphics::PipelineWorker::Close(Microsoft::WRL::ComPtr<ID3D12Graphics
     FlushResourceBarriers();
 
     ASSERT(mCurrentCommandList, "Current PipleineWorker is not Begin work.");
-    mCurrentCommandList->Close();
+    ThrowIfFailed(mCurrentCommandList->Close());
 
     // Flush pending resource barriers.
     uint32_t numPendingBarriers = mResourceStateTracker->FlushPendingResourceBarriers(pendingBarrierCommandList);

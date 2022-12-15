@@ -4,7 +4,10 @@
     <ClCompile Include="WinMain.cpp" />
     <ClCompile Include="GameState.cpp" />
     <ClCompile Include="BallRenderComponent.cpp">
-      <Filter>CustomComponents</Filter>
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="RaytracingShapeComponent.cpp">
+      <Filter>Components</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -13,14 +16,17 @@
       <Filter>Icon</Filter>
     </ClInclude>
     <ClInclude Include="BallRenderComponent.h">
-      <Filter>CustomComponents</Filter>
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="RaytracingShapeComponent.h">
+      <Filter>Components</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Icon">
       <UniqueIdentifier>{6ff32d5f-0869-4aa0-87fa-194a9b3f728c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="CustomComponents">
+    <Filter Include="Components">
       <UniqueIdentifier>{f23ad43f-daaf-4099-9d71-0caab5f7fbf6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>

@@ -29,6 +29,7 @@ namespace NFGE::Graphics {
 	class RootSignature;
 	class PipelineWorker;
 	struct PipelineComponent;
+	struct PipelineComponent_RayTracing;
 	enum class WorkerType;
 	class GraphicsSystem
 	{
@@ -73,6 +74,8 @@ namespace NFGE::Graphics {
 
 		void BeginUpload();
 		void EndUpload();
+		void BeginUpdate();
+		void EndUpdate();
 		void BeginMasterRender();
 		ComPtr<ID3D12GraphicsCommandList2> GetCurrentCommandList() const { return mCurrentCommandList; }
 		void SetCurrentCommandList(ComPtr<ID3D12GraphicsCommandList2> comandList) { mCurrentCommandList = comandList; }
@@ -82,6 +85,7 @@ namespace NFGE::Graphics {
 
 		void ToggleFullscreen(HWND WindowHandle);
 		void Resize(uint32_t width, uint32_t height);
+		void RegisterResizeComponent(PipelineComponent_RayTracing* RTComponent);
 
 		void SetClearColor(Color clearColor) { mClearColor = clearColor; }
 		Color& GetClearColor() { return mClearColor; }
@@ -107,9 +111,11 @@ namespace NFGE::Graphics {
 
 		friend LRESULT CALLBACK GraphicsSystemMessageHandler(HWND window, UINT message, WPARAM wPrarm, LPARAM lParam);
 		friend ComPtr<ID3D12Device2> GetDevice();
-		friend void RegisterPipelineComponent_FirstLoad(NFGE::Graphics::WorkerType type, PipelineComponent* component);
+		friend void RegisterPipelineComponent_Load(NFGE::Graphics::WorkerType type, PipelineComponent* component);
 		friend void RegisterPipelineComponent_Update(NFGE::Graphics::WorkerType type, PipelineComponent* component);
+		friend void RegisterRaytracingComponent(PipelineComponent* component);
 		friend PipelineWorker* GetWorker(NFGE::Graphics::WorkerType type);
+		friend PipelineWorker* GetRaytracingWorker();
 		friend uint8_t GetFrameCount();
 		friend void Flush();
 
@@ -133,6 +139,7 @@ namespace NFGE::Graphics {
 		std::unique_ptr<PipelineWorker> mDirectWorker{ nullptr };
 		std::unique_ptr<PipelineWorker> mComputeWorker{ nullptr };
 		std::unique_ptr<PipelineWorker> mCopyWorker{ nullptr };
+		std::unique_ptr<PipelineWorker> mRaytracingWorker{ nullptr };
 		PipelineWorker* mLastWorker{ nullptr };
 
 		// SwapChian
@@ -163,6 +170,8 @@ namespace NFGE::Graphics {
 		SIZE_T mMaxVideoMemory{ 0 };
 		uint64_t mFrameCount = 0;
 		bool mIsRayTracingSupport = false;
+
+		std::vector<PipelineComponent_RayTracing*> mRTComponent;
 	};
 
 } // namespace NFGE::Graphics

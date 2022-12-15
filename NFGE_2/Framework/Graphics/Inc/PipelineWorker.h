@@ -38,7 +38,7 @@ namespace NFGE::Graphics
         void Initialize();
         void Terminate();
 
-        void RegisterComponent_FirstLoad(PipelineComponent* component);
+        void RegisterComponent_Load(PipelineComponent* component);
         void RegisterComponent_Update(PipelineComponent* component);
         void BeginWork();
         void ProcessWork();
@@ -58,6 +58,8 @@ namespace NFGE::Graphics
         {
             return mCurrentCommandList;
         }
+
+        void RefreshCommandList();
 
         void TransitionBarrier(const Resource& resource, D3D12_RESOURCE_STATES stateAfter, UINT subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool flushBarriers = false);
         void TransitionBarrier(Microsoft::WRL::ComPtr<ID3D12Resource> resource, D3D12_RESOURCE_STATES stateAfter, UINT subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool flushBarriers = false);
@@ -235,7 +237,7 @@ namespace NFGE::Graphics
 		TrackedObjects mTrackedObjects;
 
         using TrackedPipelineComponents = std::vector<PipelineComponent*>;
-        TrackedPipelineComponents mTrackedPipelineComponents_FirstLoad;
+        TrackedPipelineComponents mTrackedPipelineComponents_Load;
         TrackedPipelineComponents mTrackedPipelineComponents_Update;
 	};
 	

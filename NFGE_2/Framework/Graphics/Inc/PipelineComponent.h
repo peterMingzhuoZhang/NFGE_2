@@ -102,12 +102,16 @@ namespace NFGE::Graphics
 		UINT mRaytracingOutputResourceUAVDescriptorHeapIndex;
 
 		void GetLoad(PipelineWorker& worker) override;
+		void GetBind(PipelineWorker& worker) override;
+		void DoRaytracing(PipelineWorker& worker);
+		void CopyToBackBuffer(PipelineWorker& worker);
 
+		void OnSizeChanged(UINT width, UINT height);
 	private:
 		void CreateDescriptorHeap();
 		void CreateRaytracingPSO();
 		void BuildAccelerationStructures(PipelineWorker& worker);
-		void BuildShadeTables();
+		void BuildShaderTables();
 		void CreateRaytracingOutputResource();
 		void SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, Microsoft::WRL::ComPtr<ID3D12RootSignature>* rootSig);
 		UINT AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse);

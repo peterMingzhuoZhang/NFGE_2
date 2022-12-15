@@ -1,12 +1,11 @@
 #pragma once
-
 #include "NFGE_2/Inc/NFGE_2.h"
-using namespace NFGE;
 
-class BallRenderComponent : public Component
+using namespace NFGE;
+class RayTracingShapeComponent : public Component
 {
 public:
-	RTTI_DELCEAR(BallRenderComponent)
+	RTTI_DELCEAR(RayTracingShapeComponent)
 
 	void Initialize() override;
 	void Terminate() override;
@@ -14,5 +13,5 @@ public:
 	void Render() override;
 	void DebugUI() override;
 private:
-	Graphics::GeometryPX mGeometry;
+	Graphics::GeometryRaytracing mGeometry;
 };

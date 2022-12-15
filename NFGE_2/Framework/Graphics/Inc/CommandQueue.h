@@ -18,7 +18,8 @@ namespace NFGE::Graphics {
         virtual ~CommandQueue();
 
         // Get an available command list from the command queue.
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> GetCommandList();
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> GetDedicateCommandList();
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> GetCommandList(bool isDedicate = true);
 
         // Execute a command list.
         // Returns the fence value to wait for for this command list.
@@ -55,5 +56,9 @@ namespace NFGE::Graphics {
 
         CommandAllocatorQueue                       mCommandAllocatorQueue{};
         CommandListQueue                            mCommandListQueue{};
+
+        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mDedicateCommandAllocator{ nullptr };
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> mDedicateCommandList{ nullptr };
+        
     };
 }

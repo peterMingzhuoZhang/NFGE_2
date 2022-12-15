@@ -173,17 +173,84 @@ void NFGE::Graphics::PipelineComponent_RayTracing::GetLoad(PipelineWorker& worke
 
 	CreateDescriptorHeap();
 
+	auto graphicsSystem = Graphics::GraphicsSystem::Get();
 	// Upload vertex data.
 	auto& vertices = mMesh.GetVertices();
-	worker.CopyVertexBuffer(mVertexBuffer, vertices);
+	//worker.CopyVertexBuffer(mVertexBuffer, vertices);
+	Microsoft::WRL::ComPtr<ID3D12Resource> d3d12Resource;
+	graphicsSystem->AllocateUploadBuffer(device.Get(), vertices.data(), vertices.size(), &d3d12Resource);
+	mVertexBuffer.SetD3D12Resource(d3d12Resource);
 	auto& indices = mMesh.GetIndices();
-	worker.CopyIndexBuffer(mIndexBuffer, indices);
+	//worker.CopyIndexBuffer(mIndexBuffer, indices);
+	graphicsSystem->AllocateUploadBuffer(device.Get(), indices.data(), indices.size(), &d3d12Resource);
+	mIndexBuffer.SetD3D12Resource(d3d12Resource);
 	
 	BuildAccelerationStructures(worker);
 
-	BuildShadeTables();
+	BuildShaderTables();
 
 	CreateRaytracingOutputResource();
+
+	graphicsSystem->RegisterResizeComponent(this);
+}
+
+void NFGE::Graphics::PipelineComponent_RayTracing::GetBind(PipelineWorker& worker)
+{
+}
+
+void NFGE::Graphics::PipelineComponent_RayTracing::DoRaytracing(PipelineWorker& worker)
+{
+	auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
+	auto commandList = worker.GetGraphicsCommandList();
+
+	auto DispatchRays = [&](auto* commandList, auto* stateObject, auto* dispatchDesc)
+	{
+		// Since each shader table has only one shader record, the stride is same as the size.
+		dispatchDesc->HitGroupTable.StartAddress = mHitGroupShaderTable->GetGPUVirtualAddress();
+		dispatchDesc->HitGroupTable.SizeInBytes = mHitGroupShaderTable->GetDesc().Width;
+		dispatchDesc->HitGroupTable.StrideInBytes = dispatchDesc->HitGroupTable.SizeInBytes;
+		dispatchDesc->MissShaderTable.StartAddress = mMissShaderTable->GetGPUVirtualAddress();
+		dispatchDesc->MissShaderTable.SizeInBytes = mMissShaderTable->GetDesc().Width;
+		dispatchDesc->MissShaderTable.StrideInBytes = dispatchDesc->MissShaderTable.SizeInBytes;
+		dispatchDesc->RayGenerationShaderRecord.StartAddress = mRayGenShaderTable->GetGPUVirtualAddress();
+		dispatchDesc->RayGenerationShaderRecord.SizeInBytes = mRayGenShaderTable->GetDesc().Width;
+		dispatchDesc->Width = graphicSystem->GetBackBufferWidth();
+		dispatchDesc->Height = graphicSystem->GetBackBufferHeight();
+		dispatchDesc->Depth = 1;
+		commandList->SetPipelineState1(stateObject);
+		commandList->DispatchRays(dispatchDesc);
+	};
+
+	commandList->SetComputeRootSignature(mRaytracingGlobalRootSignature.Get());
+
+	// Bind the heaps, acceleration structure and dispatch rays.    
+	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
+	commandList->SetDescriptorHeaps(1, mDescriptorHeap.GetAddressOf());
+	commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, mRaytracingOutputResourceUAVGpuDescriptor);
+	commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, mTopLevelAccelerationStructure->GetGPUVirtualAddress());
+	DispatchRays(mDxrCommandList.Get(), mDxrStateObject.Get(), &dispatchDesc);
+}
+
+void NFGE::Graphics::PipelineComponent_RayTracing::CopyToBackBuffer(PipelineWorker& worker)
+{
+	auto commandList = worker.GetGraphicsCommandList();
+	auto renderTarget = NFGE::Graphics::GraphicsSystem::Get()->GetRenderTarget().GetTexture(AttachmentPoint::Color0).GetD3D12Resource();
+
+	//worker.TransitionBarrier(renderTarget, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,true);
+	//worker.TransitionBarrier(mRaytracingOutput.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
+	D3D12_RESOURCE_BARRIER preCopyBarriers[2];
+	preCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
+	preCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(mRaytracingOutput.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	commandList->ResourceBarrier(ARRAYSIZE(preCopyBarriers), preCopyBarriers);
+
+	commandList->CopyResource(renderTarget.Get(), mRaytracingOutput.Get());
+
+	//worker.TransitionBarrier(renderTarget, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
+	//worker.TransitionBarrier(mRaytracingOutput.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
+	D3D12_RESOURCE_BARRIER postCopyBarriers[2];
+	postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(mRaytracingOutput.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
 }
 
 void NFGE::Graphics::PipelineComponent_RayTracing::CreateDescriptorHeap()
@@ -265,7 +332,9 @@ void NFGE::Graphics::PipelineComponent_RayTracing::CreateRaytracingPSO()
 void NFGE::Graphics::PipelineComponent_RayTracing::BuildAccelerationStructures(PipelineWorker& worker)
 {
 	auto device = Graphics::GetDevice();
-	auto commandList = worker.GetGraphicsCommandList(); // TODO:: Make sure the commandList is fresh.
+	worker.EndWork();
+	worker.BeginWork();
+	auto commandList = worker.GetGraphicsCommandList();
 
 	D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc = {};
 	geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
@@ -298,15 +367,15 @@ void NFGE::Graphics::PipelineComponent_RayTracing::BuildAccelerationStructures(P
 	mDxrDevice->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &bottomLevelPrebuildInfo);
 	ASSERT(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0, "BottomLevelPrebuildInfo can not be empty.");
 
-	auto graphicSystem = Graphics::GraphicsSystem::Get();
+	//auto graphicSystem = Graphics::GraphicsSystem::Get();
 	Microsoft::WRL::ComPtr<ID3D12Resource> scratchResource;
-	graphicSystem->AllocateUAVBuffer(device.Get(), NFGE::Math::Max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelPrebuildInfo.ScratchDataSizeInBytes), &scratchResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, L"ScratchResource");
+	GraphicsSystem::AllocateUAVBuffer(device.Get(), NFGE::Math::Max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelPrebuildInfo.ScratchDataSizeInBytes), &scratchResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, L"ScratchResource");
 
 	{
 		D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
 
-		graphicSystem->AllocateUAVBuffer(device.Get(), bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes, &mBottomLevelAccelerationStructure, initialResourceState, L"BottomLevelAccelerationStructure");
-		graphicSystem->AllocateUAVBuffer(device.Get(), topLevelPrebuildInfo.ResultDataMaxSizeInBytes, &mTopLevelAccelerationStructure, initialResourceState, L"TopLevelAccelerationStructure");
+		GraphicsSystem::AllocateUAVBuffer(device.Get(), bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes, &mBottomLevelAccelerationStructure, initialResourceState, L"BottomLevelAccelerationStructure");
+		GraphicsSystem::AllocateUAVBuffer(device.Get(), topLevelPrebuildInfo.ResultDataMaxSizeInBytes, &mTopLevelAccelerationStructure, initialResourceState, L"TopLevelAccelerationStructure");
 	}
 
 	// Create an instance desc for the bottom-level acceleration structure.
@@ -315,7 +384,7 @@ void NFGE::Graphics::PipelineComponent_RayTracing::BuildAccelerationStructures(P
 	instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1;
 	instanceDesc.InstanceMask = 1;
 	instanceDesc.AccelerationStructure = mBottomLevelAccelerationStructure->GetGPUVirtualAddress();
-	graphicSystem->AllocateUploadBuffer(device.Get(), &instanceDesc, sizeof(instanceDesc), &instanceDescs, L"InstanceDescs");
+	GraphicsSystem::AllocateUploadBuffer(device.Get(), &instanceDesc, sizeof(instanceDesc), &instanceDescs, L"InstanceDescs");
 
 	// Bottom Level Acceleration Structure desc
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
@@ -334,19 +403,21 @@ void NFGE::Graphics::PipelineComponent_RayTracing::BuildAccelerationStructures(P
 		topLevelBuildDesc.ScratchAccelerationStructureData = scratchResource->GetGPUVirtualAddress();
 	}
 
-	auto BuildAccelerationStructure = [&](auto* raytracingCommandList)
-	{
-		raytracingCommandList->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
-		auto barrier = CD3DX12_RESOURCE_BARRIER::UAV(mBottomLevelAccelerationStructure.Get());
-		commandList->ResourceBarrier(1, &barrier);
-		raytracingCommandList->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
-	};
+	//auto BuildAccelerationStructure = [&](auto* raytracingCommandList)
+	//{
+		mDxrCommandList.Get()->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
+		worker.UAVBarrier(mBottomLevelAccelerationStructure,true);
+		mDxrCommandList.Get()->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
+	//};
 
 	// Build acceleration structure.
-	BuildAccelerationStructure(mDxrCommandList.Get());
+	//BuildAccelerationStructure(mDxrCommandList.Get());
+
+	worker.EndWork();
+	worker.BeginWork();
 }
 
-void NFGE::Graphics::PipelineComponent_RayTracing::BuildShadeTables()
+void NFGE::Graphics::PipelineComponent_RayTracing::BuildShaderTables()
 {
 	auto device = Graphics::GetDevice();
 
@@ -423,6 +494,17 @@ void NFGE::Graphics::PipelineComponent_RayTracing::CreateRaytracingOutputResourc
 	UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 	device->CreateUnorderedAccessView(mRaytracingOutput.Get(), nullptr, &UAVDesc, uavDescriptorHandle);
 	mRaytracingOutputResourceUAVGpuDescriptor = CD3DX12_GPU_DESCRIPTOR_HANDLE(mDescriptorHeap->GetGPUDescriptorHandleForHeapStart(), mRaytracingOutputResourceUAVDescriptorHeapIndex, mDescriptorSize);
+}
+
+void NFGE::Graphics::PipelineComponent_RayTracing::OnSizeChanged(UINT width, UINT height)
+{
+	mRayGenShaderTable.Reset();
+	mMissShaderTable.Reset();
+	mHitGroupShaderTable.Reset();
+	mRaytracingOutput.Reset();
+
+	CreateRaytracingOutputResource();
+	BuildShaderTables();
 }
 
 void NFGE::Graphics::PipelineComponent_RayTracing::SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, Microsoft::WRL::ComPtr<ID3D12RootSignature>* rootSig)
