@@ -157,7 +157,7 @@ void NFGE::Graphics::GeometryPX::Render(const NFGE::Graphics::Camera& camera)
 }
 
 // ---------------------------- Geometry Raytracing ---------------------------------
-void NFGE::Graphics::GeometryRaytracing::Prepare(const std::vector<PipelineComponent_RayTracing::Vertex> vertices, const std::vector<UINT16> indices, DirectionalLight* directionLight)
+void NFGE::Graphics::GeometryRaytracing::Prepare(const std::vector<PipelineComponent_RayTracing::Vertex>& vertices, const std::vector<UINT16>& indices, DirectionalLight* directionLight)
 {
 	mMeshContext.mLight = directionLight;
 	mPipelineComp_RT.mMesh.mVertices = vertices;
@@ -171,8 +171,6 @@ void NFGE::Graphics::GeometryRaytracing::Render(const NFGE::Graphics::Camera& ca
 	auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
 	auto worker = NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType::Direct);
 	
-	//worker->BeginWork();
 	mPipelineComp_RT.DoRaytracing(*worker);
 	mPipelineComp_RT.CopyToBackBuffer(*worker);
-	//worker->EndWork();
 }

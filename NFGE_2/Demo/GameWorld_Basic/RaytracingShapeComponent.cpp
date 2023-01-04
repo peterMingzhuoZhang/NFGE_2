@@ -3,13 +3,13 @@
 RTTI_DEFINITION(RayTracingShapeComponent)
 void RayTracingShapeComponent::Initialize()
 {
-    std::vector<UINT16> indices{ 1,2,3 };
+    std::vector<UINT16> indices{ 0,1,2 };
     float depthValue = 1.0;
     float offset = 0.7f;
     std::vector<Graphics::PipelineComponent_RayTracing::Vertex> vertices{
-        { 0, -offset, depthValue },
-        { -offset, offset, depthValue },
-        { offset, offset, depthValue }
+        { 0, 0.5, depthValue },
+        { 0.5, -0.5, depthValue },
+        { -0.5, -0.5, depthValue }
     };
     mGeometry.Prepare(vertices, indices, &sApp.GetMainLight());
 }

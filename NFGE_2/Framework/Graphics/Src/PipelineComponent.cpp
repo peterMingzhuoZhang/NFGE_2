@@ -144,6 +144,10 @@ const wchar_t* PipelineComponent_RayTracing::sMissShaderName = L"MyMissShader";
 
 void NFGE::Graphics::PipelineComponent_RayTracing::GetLoad(PipelineWorker& worker)
 {
+	auto graphicsSystem = Graphics::GraphicsSystem::Get();
+	mRayGenCB.viewport = { -1.0f, -1.0f, 1.0f, 1.0f };
+	UpdateForSizeChange(graphicsSystem->GetBackBufferWidth(), graphicsSystem->GetBackBufferHeight());
+
 	auto device = Graphics::GetDevice();
 	auto commandList = worker.GetGraphicsCommandList();
 
@@ -173,17 +177,11 @@ void NFGE::Graphics::PipelineComponent_RayTracing::GetLoad(PipelineWorker& worke
 
 	CreateDescriptorHeap();
 
-	auto graphicsSystem = Graphics::GraphicsSystem::Get();
 	// Upload vertex data.
 	auto& vertices = mMesh.GetVertices();
-	//worker.CopyVertexBuffer(mVertexBuffer, vertices);
-	Microsoft::WRL::ComPtr<ID3D12Resource> d3d12Resource;
-	graphicsSystem->AllocateUploadBuffer(device.Get(), vertices.data(), vertices.size(), &d3d12Resource);
-	mVertexBuffer.SetD3D12Resource(d3d12Resource);
+	worker.CopyVertexBuffer(mVertexBuffer, vertices);
 	auto& indices = mMesh.GetIndices();
-	//worker.CopyIndexBuffer(mIndexBuffer, indices);
-	graphicsSystem->AllocateUploadBuffer(device.Get(), indices.data(), indices.size(), &d3d12Resource);
-	mIndexBuffer.SetD3D12Resource(d3d12Resource);
+	worker.CopyIndexBuffer(mIndexBuffer, indices);
 	
 	BuildAccelerationStructures(worker);
 
@@ -502,6 +500,7 @@ void NFGE::Graphics::PipelineComponent_RayTracing::OnSizeChanged(UINT width, UIN
 	mMissShaderTable.Reset();
 	mHitGroupShaderTable.Reset();
 	mRaytracingOutput.Reset();
+	UpdateForSizeChange(width, height);
 
 	CreateRaytracingOutputResource();
 	BuildShaderTables();
@@ -526,4 +525,27 @@ UINT NFGE::Graphics::PipelineComponent_RayTracing::AllocateDescriptor(D3D12_CPU_
 	}
 	*cpuDescriptor = CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptorHeapCpuBase, descriptorIndexToUse, mDescriptorSize);
 	return descriptorIndexToUse;
+}
+
+void NFGE::Graphics::PipelineComponent_RayTracing::UpdateForSizeChange(UINT width, UINT height)
+{
+	float border = 0.1f;
+	float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+	if (width <= height)
+	{
+		mRayGenCB.stencil =
+		{
+			-1 + border, -1 + border * aspectRatio,
+			1.0f - border, 1 - border * aspectRatio
+		};
+	}
+	else
+	{
+		mRayGenCB.stencil =
+		{
+			-1 + border / aspectRatio, -1 + border,
+			 1 - border / aspectRatio, 1.0f - border
+		};
+
+	}
 }
