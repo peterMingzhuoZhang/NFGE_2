@@ -87,8 +87,11 @@ namespace NFGE::Graphics {
         // Check if the resource format supports a specific feature.
         bool CheckFormatSupport(D3D12_FORMAT_SUPPORT1 formatSupport) const;
         bool CheckFormatSupport(D3D12_FORMAT_SUPPORT2 formatSupport) const;
-    protected:
+
+        D3D12_CPU_DESCRIPTOR_HANDLE mCpuDescriptorHandle;
+        D3D12_GPU_DESCRIPTOR_HANDLE mGpuDescriptorHandle;
         // The underlying D3D12 resource.
+    protected:
         Microsoft::WRL::ComPtr<ID3D12Resource> mD3d12Resource;
         D3D12_FEATURE_DATA_FORMAT_SUPPORT mFormatSupport;
         std::unique_ptr<D3D12_CLEAR_VALUE> mD3d12ClearValue;

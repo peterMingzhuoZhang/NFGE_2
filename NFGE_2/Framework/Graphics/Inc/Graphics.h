@@ -28,6 +28,7 @@
 #include "Model.h"
 #include "PipelineComponent.h"
 #include "PipelineWorker.h"
+#include "../RaytracingHlslCompat.h"
 #include "RenderTarget.h"
 #include "Resource.h"
 #include "ResourceStateTracker.h"

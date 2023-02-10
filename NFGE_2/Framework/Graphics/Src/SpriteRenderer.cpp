@@ -120,7 +120,7 @@ void NFGE::Graphics::SpriteRenderer::RegisterSpriteTexture(Texture& texture)
 
 void NFGE::Graphics::SpriteRenderer::PrepareRender()
 {
-	mSpriteTextureDescriptorHeap.push_back(Graphics::CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, mRegisterSprite.size()));
+	mSpriteTextureDescriptorHeap.push_back(Graphics::CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, static_cast<uint32_t>(mRegisterSprite.size())));
 
 	Microsoft::WRL::ComPtr<ID3D12Device2> device = Graphics::GetDevice();
 	DirectX::ResourceUploadBatch uploadBatch(device.Get());
@@ -153,7 +153,7 @@ void NFGE::Graphics::SpriteRenderer::BeginRender()// TODO rendertarget argument
 	{
 		heaps.push_back(mSpriteTextureDescriptorHeap[i].Get());
 	}
-	mAssignedWorker->GetGraphicsCommandList().Get()->SetDescriptorHeaps(heaps.size(), heaps.data());
+	mAssignedWorker->GetGraphicsCommandList().Get()->SetDescriptorHeaps(static_cast<UINT>(heaps.size()), heaps.data());
 	
 
 	auto commandList = mAssignedWorker->GetGraphicsCommandList().Get();

@@ -15,14 +15,19 @@ void GameState::Initialize()
 	camera->SetDirection({ 0.0f,0.0f,1.0f });
 	camera->SetPosition(0.0f);
 	mWorld.Initialize(10);
+	
+	Graphics::DirectionalLight& light = mWorld.GetMainLight();
+	light.direction = { 0.0f, 1.8f, -3.0f};
+	light.ambient = { 0.5f, 0.5f, 0.5f, 1.0f };
+	light.diffuse = { 0.5f, 0.0f, 0.0f, 1.0f };
 
 	mGameObjectHandle =  mWorld.CreateEmpty(gameObjectID);
 	mGameObjectHandle.Get()->GetComponent<NFGE::TransformComponent>()->position = { -15.0f,0.0f, 40.0f };
-	//mGameObjectHandle.Get()->AddComponent<BallRenderComponent>();
 	mGameObjectHandle.Get()->AddComponent<RayTracingShapeComponent>();
+	mGameObjectHandle.Get()->AddComponent<BallRenderComponent>();
 	mGameObjectHandle.Get()->Initialize();
 
-	//mLogo = Graphics::TextureManager::Get()->LoadTexture(LogoID, Graphics::TextureUsage::Sprite);
+	mLogo = Graphics::TextureManager::Get()->LoadTexture(LogoID, Graphics::TextureUsage::Sprite);
 }
 
 void GameState::Terminate()
@@ -32,14 +37,18 @@ void GameState::Terminate()
 
 void GameState::Update(float deltaTime)
 {
+	Graphics::DirectionalLight& light = mWorld.GetMainLight();
+	light.direction = Math::TransfromCoord(light.direction, Math::Matrix4::sRotationY(10.0f * deltaTime));
+
 	mWorld.Update(deltaTime);
+	
 	sApp.SoSoCameraControl(10, 10, mWorld.GetService<CameraService>()->GetActiveCamera(), deltaTime);
 }
 
 void GameState::Render()
 {
 	mWorld.Render();
-	//sApp.DrawSprite(mLogo, { 500.0f,500.0f });
+	sApp.DrawSprite(mLogo, { 500.0f,500.0f });
 }
 
 void GameState::DebugUI()

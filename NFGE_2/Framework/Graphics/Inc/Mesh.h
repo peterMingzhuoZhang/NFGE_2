@@ -99,6 +99,7 @@ namespace NFGE::Graphics
 		static MeshPX CreateTorusPX(int LengthFactor, int roundFactor, float innerRadius, float outerRadius);
 		static MeshPX CreateNDCQuad();
 
+		static MeshPN CreateTestCubePN();
 		static MeshPN CreateSpherePN(int HeightFactor, int roundFactor, float radius);
 		static MeshPN CreateConePN(int HeightFactor, int roundFactor, float radius, float height);
 

@@ -3,15 +3,8 @@
 RTTI_DEFINITION(RayTracingShapeComponent)
 void RayTracingShapeComponent::Initialize()
 {
-    std::vector<UINT16> indices{ 0,1,2 };
-    float depthValue = 1.0;
-    float offset = 0.7f;
-    std::vector<Graphics::PipelineComponent_RayTracing::Vertex> vertices{
-        { 0, 0.5, depthValue },
-        { 0.5, -0.5, depthValue },
-        { -0.5, -0.5, depthValue }
-    };
-    mGeometry.Prepare(vertices, indices, &sApp.GetMainLight());
+    Graphics::MeshPN mesh = Graphics::MeshBuilder::CreateTestCubePN();
+    mGeometry.Prepare(mesh.GetVertices(), mesh.GetIndices(), Graphics::Colors::White);
 }
 
 void RayTracingShapeComponent::Terminate()
@@ -20,11 +13,12 @@ void RayTracingShapeComponent::Terminate()
 
 void RayTracingShapeComponent::Update(float deltaTime)
 {
+    mGeometry.mMeshContext.position = GetOwner().GetComponent<NFGE::TransformComponent>()->position;
 }
 
 void RayTracingShapeComponent::Render()
 {
-    mGeometry.Render(sApp.GetMainCamera());
+    mGeometry.Render(sApp.GetMainCamera(), sApp.GetMainLight());
 }
 
 void RayTracingShapeComponent::DebugUI()

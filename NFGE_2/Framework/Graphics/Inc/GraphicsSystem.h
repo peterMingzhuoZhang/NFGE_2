@@ -59,6 +59,7 @@ namespace NFGE::Graphics {
 
 		static void AllocateUAVBuffer(ID3D12Device* pDevice, UINT64 bufferSize, ID3D12Resource** ppResource, D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_COMMON, const wchar_t* resourceName = nullptr);
 		static void AllocateUploadBuffer(ID3D12Device* pDevice, void* pData, UINT64 datasize, ID3D12Resource** ppResource, const wchar_t* resourceName = nullptr);
+		static uint8_t GetBackBufferFrameCount() { return sNumFrames; }
 
 	public:
 		GraphicsSystem() = default;
@@ -93,6 +94,7 @@ namespace NFGE::Graphics {
 
 		uint32_t GetBackBufferWidth() const;
 		uint32_t GetBackBufferHeight() const;
+		UINT GetCurrentBackBufferIndex() const { return mCurrentBackBufferIndex; };
 
 		D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(D3D12_DESCRIPTOR_HEAP_TYPE type, Texture& cpuHandle);
 
@@ -105,9 +107,9 @@ namespace NFGE::Graphics {
 
 		void IncrementFrameCount() { ++mFrameCount; };
 
+		static const uint8_t sNumFrames = 3;
 	private:
 		
-		static const uint8_t sNumFrames = 3;
 
 		friend LRESULT CALLBACK GraphicsSystemMessageHandler(HWND window, UINT message, WPARAM wPrarm, LPARAM lParam);
 		friend ComPtr<ID3D12Device2> GetDevice();
@@ -126,7 +128,6 @@ namespace NFGE::Graphics {
 
 		void UpdateRenderTargetViews();
 		void UpdateDepthStencilView();
-		UINT GetCurrentBackBufferIndex() const { return mCurrentBackBufferIndex; };
 
 		// Synchronization functions
 		void Flush();

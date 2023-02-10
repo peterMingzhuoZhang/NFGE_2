@@ -18,7 +18,12 @@
 using namespace NFGE::Graphics;
 using namespace Microsoft::WRL;
 
-// PipelineComponent_Basic -------------------------------------------------------------------------
+// PipelineComponent_Basic ----------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------
 template<typename T>
 void NFGE::Graphics::PipelineComponent_Basic<T>::GetLoad(PipelineWorker& worker)
 {
@@ -120,7 +125,12 @@ void NFGE::Graphics::PipelineComponent_Basic<T>::UpdateVertices(const std::vecto
 template struct PipelineComponent_Basic<MeshPC>;
 template struct PipelineComponent_Basic<MeshPX>;
 
-// PipelineComponent_SingleTexture -----------------------------------------------------------------
+// PipelineComponent_SingleTexture --------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------
 void NFGE::Graphics::PipelineComponent_SingleTexture::GetLoad(PipelineWorker& worker)
 {
 	ASSERT(!isLoaded, "Loading component second time is not allowed.");
@@ -137,6 +147,11 @@ void NFGE::Graphics::PipelineComponent_SingleTexture::GetBind(PipelineWorker& wo
 }
 
 // PipelineComponent_Raytracing -----------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------
 const wchar_t* PipelineComponent_RayTracing::sHitGroupName = L"MyHitGroup";
 const wchar_t* PipelineComponent_RayTracing::sRaygenShaderName = L"MyRaygenShader";
 const wchar_t* PipelineComponent_RayTracing::sClosestHitShaderName = L"MyClosestHitShader";
@@ -145,7 +160,7 @@ const wchar_t* PipelineComponent_RayTracing::sMissShaderName = L"MyMissShader";
 void NFGE::Graphics::PipelineComponent_RayTracing::GetLoad(PipelineWorker& worker)
 {
 	auto graphicsSystem = Graphics::GraphicsSystem::Get();
-	mRayGenCB.viewport = { -1.0f, -1.0f, 1.0f, 1.0f };
+	//mRayGenCB.viewport = { -1.0f, -1.0f, 1.0f, 1.0f };
 	UpdateForSizeChange(graphicsSystem->GetBackBufferWidth(), graphicsSystem->GetBackBufferHeight());
 
 	auto device = Graphics::GetDevice();
@@ -156,18 +171,23 @@ void NFGE::Graphics::PipelineComponent_RayTracing::GetLoad(PipelineWorker& worke
 
 	// Global Root Signature
 	{
-		CD3DX12_DESCRIPTOR_RANGE UAVDescriptor;
-		UAVDescriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+		CD3DX12_DESCRIPTOR_RANGE ranges[2]; // Perfomance TIP: Order from most frequent to least frequent.
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);  // 1 output texture
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1);  // 2 static index and vertex buffers.
+
 		CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
-		rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &UAVDescriptor);
+		rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
 		rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
+		rootParameters[GlobalRootSignatureParams::SceneConstantSlot].InitAsConstantBufferView(0);
+		rootParameters[GlobalRootSignatureParams::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
 		SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &mRaytracingGlobalRootSignature);
 	}
 	// Local Root Signature
+
 	{
 		CD3DX12_ROOT_PARAMETER rootParameters[LocalRootSignatureParams::Count];
-		rootParameters[LocalRootSignatureParams::ViewportConstantSlot].InitAsConstants(SizeOfInUint32(mRayGenCB), 0, 0);
+		rootParameters[LocalRootSignatureParams::MaterialConstantSlot].InitAsConstants(SizeOfInUint32(mMaterialCB), 1);
 		CD3DX12_ROOT_SIGNATURE_DESC localRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
 		localRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
 		SerializeAndCreateRaytracingRootSignature(localRootSignatureDesc, &mRaytracingLocalRootSignature);
@@ -177,13 +197,22 @@ void NFGE::Graphics::PipelineComponent_RayTracing::GetLoad(PipelineWorker& worke
 
 	CreateDescriptorHeap();
 
+
 	// Upload vertex data.
-	auto& vertices = mMesh.GetVertices();
-	worker.CopyVertexBuffer(mVertexBuffer, vertices);
 	auto& indices = mMesh.GetIndices();
 	worker.CopyIndexBuffer(mIndexBuffer, indices);
+	auto& vertices = mMesh.GetVertices();
+	worker.CopyVertexBuffer(mVertexBuffer, vertices);
+
+	// Vertex buffer is passed to the shader along with index buffer as a descriptor table.
+	// Vertex buffer descriptor must follow index buffer descriptor in the descriptor heap.
+	UINT descriptorIndexIB = CreateBufferSRV(&mIndexBuffer, sizeof(indices) * 2 / 4, 0); // each element has two bytes
+	UINT descriptorIndexVB = CreateBufferSRV(&mVertexBuffer, static_cast<UINT>(vertices.size()), sizeof(vertices[0]));
+	ThrowIfFailed(descriptorIndexVB == descriptorIndexIB + 1, L"Vertex Buffer descriptor index must follow that of Index Buffer descriptor index!");
 	
 	BuildAccelerationStructures(worker);
+
+	CreateConstantBuffer();
 
 	BuildShaderTables();
 
@@ -200,6 +229,7 @@ void NFGE::Graphics::PipelineComponent_RayTracing::DoRaytracing(PipelineWorker& 
 {
 	auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
 	auto commandList = worker.GetGraphicsCommandList();
+	size_t frameIndex = graphicSystem->GetCurrentBackBufferIndex();
 
 	auto DispatchRays = [&](auto* commandList, auto* stateObject, auto* dispatchDesc)
 	{
@@ -221,9 +251,16 @@ void NFGE::Graphics::PipelineComponent_RayTracing::DoRaytracing(PipelineWorker& 
 
 	commandList->SetComputeRootSignature(mRaytracingGlobalRootSignature.Get());
 
+	commandList->SetComputeRootSignature(mRaytracingGlobalRootSignature.Get());
+
+	// Copy the updated scene constant buffer to GPU.
+	memcpy(&mMappedConstantData[frameIndex].constants, &mSceneCB[frameIndex], sizeof(mSceneCB[frameIndex]));
+	auto cbGpuAddress = mPerFrameConstants->GetGPUVirtualAddress() + frameIndex * sizeof(mMappedConstantData[0]);
+	commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::SceneConstantSlot, cbGpuAddress);
 	// Bind the heaps, acceleration structure and dispatch rays.    
 	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
 	commandList->SetDescriptorHeaps(1, mDescriptorHeap.GetAddressOf());
+	commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, mIndexBuffer.mGpuDescriptorHandle);
 	commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, mRaytracingOutputResourceUAVGpuDescriptor);
 	commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, mTopLevelAccelerationStructure->GetGPUVirtualAddress());
 	DispatchRays(mDxrCommandList.Get(), mDxrStateObject.Get(), &dispatchDesc);
@@ -256,9 +293,10 @@ void NFGE::Graphics::PipelineComponent_RayTracing::CreateDescriptorHeap()
 	auto device = Graphics::GetDevice();
 
 	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc = {};
-	// Allocate a heap for a single descriptor:
-	// 1 - raytracing output texture UAV
-	descriptorHeapDesc.NumDescriptors = 1;
+	// Allocate a heap for 3 descriptors:
+	// 2 - vertex and index buffer SRVs
+	// 1 - raytracing output texture SRV
+	descriptorHeapDesc.NumDescriptors = 3;
 	descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	descriptorHeapDesc.NodeMask = 0;
@@ -272,6 +310,7 @@ void NFGE::Graphics::PipelineComponent_RayTracing::CreateRaytracingPSO()
 {
 	// Create PSO
 	CD3DX12_STATE_OBJECT_DESC raytracingPipeline{ D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
+
 	// PSO::DXIL library
 	// This contains the shaders and their entrypoints for the state object.
 	// Since shaders are not considered a subobject, they need to be passed in via DXIL library subobjects.
@@ -296,8 +335,8 @@ void NFGE::Graphics::PipelineComponent_RayTracing::CreateRaytracingPSO()
 
 	// PSO::Ray payload and attribute structure
 	CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT* shaderConfig = raytracingPipeline.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-	UINT payloadSize = 4 * sizeof(float);   // float4 color
-	UINT attributeSize = 2 * sizeof(float); // float2 barycentrics
+	UINT payloadSize = sizeof(XMFLOAT4);   // float4 color
+	UINT attributeSize = sizeof(XMFLOAT2); // float2 barycentrics
 	shaderConfig->Config(payloadSize, attributeSize);
 
 	// PSO:: Set Local root signature and shader association
@@ -307,7 +346,7 @@ void NFGE::Graphics::PipelineComponent_RayTracing::CreateRaytracingPSO()
 		// Shader association
 		auto rootSignatureAssociation = raytracingPipeline.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
 		rootSignatureAssociation->SetSubobjectToAssociate(*localRootSignature);
-		rootSignatureAssociation->AddExport(sRaygenShaderName);
+		rootSignatureAssociation->AddExport(sHitGroupName);
 	}
 
 	// PSO:: Set Global root signature
@@ -341,33 +380,41 @@ void NFGE::Graphics::PipelineComponent_RayTracing::BuildAccelerationStructures(P
 	geometryDesc.Triangles.IndexFormat = DXGI_FORMAT_R16_UINT;
 	geometryDesc.Triangles.Transform3x4 = 0;
 	geometryDesc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
-	geometryDesc.Triangles.VertexCount = static_cast<UINT>(mVertexBuffer.GetD3D12ResourceDesc().Width) / sizeof(Vertex);
+	geometryDesc.Triangles.VertexCount = static_cast<UINT>(mVertexBuffer.GetD3D12ResourceDesc().Width) / sizeof(VertexPN);
 	geometryDesc.Triangles.VertexBuffer.StartAddress = mVertexBuffer.GetD3D12Resource()->GetGPUVirtualAddress();
-	geometryDesc.Triangles.VertexBuffer.StrideInBytes = sizeof(Vertex);
+	geometryDesc.Triangles.VertexBuffer.StrideInBytes = sizeof(VertexPN);
 	geometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE; // Opaque can enable important ray processing optimization
 
-	// Get required sizes for an acceleration structure.
+	 // Get required sizes for an acceleration structure.
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
-	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS topLevelInputs = {};
+
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& bottomLevelInputs = bottomLevelBuildDesc.Inputs;
+	bottomLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+	bottomLevelInputs.Flags = buildFlags;
+	bottomLevelInputs.NumDescs = 1;
+	bottomLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+	bottomLevelInputs.pGeometryDescs = &geometryDesc;
+
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& topLevelInputs = topLevelBuildDesc.Inputs;
 	topLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
 	topLevelInputs.Flags = buildFlags;
 	topLevelInputs.NumDescs = 1;
+	topLevelInputs.pGeometryDescs = nullptr;
 	topLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO topLevelPrebuildInfo = {};
 	mDxrDevice->GetRaytracingAccelerationStructurePrebuildInfo(&topLevelInputs, &topLevelPrebuildInfo);
-	ASSERT(topLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0, "TopLevelPrebuildInfo can not be empty.");
+	ThrowIfFailed(topLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
 
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelPrebuildInfo = {};
-	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS bottomLevelInputs = topLevelInputs;
-	bottomLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-	bottomLevelInputs.pGeometryDescs = &geometryDesc;
 	mDxrDevice->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &bottomLevelPrebuildInfo);
-	ASSERT(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0, "BottomLevelPrebuildInfo can not be empty.");
+	ThrowIfFailed(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
 
 	//auto graphicSystem = Graphics::GraphicsSystem::Get();
 	Microsoft::WRL::ComPtr<ID3D12Resource> scratchResource;
-	GraphicsSystem::AllocateUAVBuffer(device.Get(), NFGE::Math::Max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelPrebuildInfo.ScratchDataSizeInBytes), &scratchResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, L"ScratchResource");
+	GraphicsSystem::AllocateUAVBuffer(device.Get(), NFGE::Math::Max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelPrebuildInfo.ScratchDataSizeInBytes), &scratchResource, D3D12_RESOURCE_STATE_COMMON, L"ScratchResource");
 
 	{
 		D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
@@ -385,18 +432,14 @@ void NFGE::Graphics::PipelineComponent_RayTracing::BuildAccelerationStructures(P
 	GraphicsSystem::AllocateUploadBuffer(device.Get(), &instanceDesc, sizeof(instanceDesc), &instanceDescs, L"InstanceDescs");
 
 	// Bottom Level Acceleration Structure desc
-	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
 	{
-		bottomLevelBuildDesc.Inputs = bottomLevelInputs;
 		bottomLevelBuildDesc.ScratchAccelerationStructureData = scratchResource->GetGPUVirtualAddress();
 		bottomLevelBuildDesc.DestAccelerationStructureData = mBottomLevelAccelerationStructure->GetGPUVirtualAddress();
 	}
 
 	// Top Level Acceleration Structure desc
-	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
 	{
 		topLevelInputs.InstanceDescs = instanceDescs->GetGPUVirtualAddress();
-		topLevelBuildDesc.Inputs = topLevelInputs;
 		topLevelBuildDesc.DestAccelerationStructureData = mTopLevelAccelerationStructure->GetGPUVirtualAddress();
 		topLevelBuildDesc.ScratchAccelerationStructureData = scratchResource->GetGPUVirtualAddress();
 	}
@@ -413,6 +456,31 @@ void NFGE::Graphics::PipelineComponent_RayTracing::BuildAccelerationStructures(P
 
 	worker.EndWork();
 	worker.BeginWork();
+}
+
+void NFGE::Graphics::PipelineComponent_RayTracing::CreateConstantBuffer()
+{
+	auto device = Graphics::GetDevice();
+	UINT frameCount = GraphicsSystem::GetBackBufferFrameCount();
+	// Create the constant buffer memory and map the CPU and GPU addresses
+	const D3D12_HEAP_PROPERTIES uploadHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+
+	// Allocate one constant buffer per frame, since it gets updated every frame.
+	size_t cbSize = frameCount * sizeof(AlignedSceneConstantBuffer);
+	const D3D12_RESOURCE_DESC constantBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(cbSize);
+
+	ThrowIfFailed(device->CreateCommittedResource(
+		&uploadHeapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&constantBufferDesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&mPerFrameConstants)));
+
+	// Map the constant buffer and cache its heap pointers.
+	// We don't unmap this until the app closes. Keeping buffer mapped for the lifetime of the resource is okay.
+	CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
+	ThrowIfFailed(mPerFrameConstants->Map(0, nullptr, reinterpret_cast<void**>(&mMappedConstantData)));
 }
 
 void NFGE::Graphics::PipelineComponent_RayTracing::BuildShaderTables()
@@ -441,15 +509,10 @@ void NFGE::Graphics::PipelineComponent_RayTracing::BuildShaderTables()
 
 	// Ray gen shader table
 	{
-		struct RootArguments {
-			RayGenConstantBuffer cb;
-		} rootArguments;
-		rootArguments.cb = mRayGenCB;
-
 		UINT numShaderRecords = 1;
-		UINT shaderRecordSize = shaderIdentifierSize + sizeof(rootArguments);
+		UINT shaderRecordSize = shaderIdentifierSize;
 		NFGE::Graphics::ShaderTable rayGenShaderTable(device.Get(), numShaderRecords, shaderRecordSize, L"RayGenShaderTable");
-		rayGenShaderTable.push_back(ShaderRecord(rayGenShaderIdentifier, shaderIdentifierSize, &rootArguments, sizeof(rootArguments)));
+		rayGenShaderTable.push_back(ShaderRecord(rayGenShaderIdentifier, shaderIdentifierSize));
 		mRayGenShaderTable = rayGenShaderTable.GetResource();
 	}
 
@@ -464,10 +527,15 @@ void NFGE::Graphics::PipelineComponent_RayTracing::BuildShaderTables()
 
 	// Hit group shader table
 	{
+		struct RootArguments {
+			MaterialConstantBuffer cb;
+		} rootArguments;
+		rootArguments.cb = mMaterialCB;
+
 		UINT numShaderRecords = 1;
-		UINT shaderRecordSize = shaderIdentifierSize;
+		UINT shaderRecordSize = shaderIdentifierSize + sizeof(rootArguments);
 		ShaderTable hitGroupShaderTable(device.Get(), numShaderRecords, shaderRecordSize, L"HitGroupShaderTable");
-		hitGroupShaderTable.push_back(ShaderRecord(hitGroupShaderIdentifier, shaderIdentifierSize));
+		hitGroupShaderTable.push_back(ShaderRecord(hitGroupShaderIdentifier, shaderIdentifierSize, &rootArguments, sizeof(rootArguments)));
 		mHitGroupShaderTable = hitGroupShaderTable.GetResource();
 	}
 }
@@ -527,9 +595,36 @@ UINT NFGE::Graphics::PipelineComponent_RayTracing::AllocateDescriptor(D3D12_CPU_
 	return descriptorIndexToUse;
 }
 
+UINT NFGE::Graphics::PipelineComponent_RayTracing::CreateBufferSRV(Buffer* buffer, UINT numElements, UINT elementSize) 
+{
+	auto device = Graphics::GetDevice();
+
+	// SRV
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Buffer.NumElements = numElements;
+	if (elementSize == 0)
+	{
+		srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+		srvDesc.Buffer.StructureByteStride = 0;
+	}
+	else
+	{
+		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+		srvDesc.Buffer.StructureByteStride = elementSize;
+	}
+	UINT descriptorIndex = AllocateDescriptor(&buffer->mCpuDescriptorHandle);
+	device->CreateShaderResourceView(buffer->GetD3D12Resource().Get(), &srvDesc, buffer->mCpuDescriptorHandle);
+	buffer->mGpuDescriptorHandle= CD3DX12_GPU_DESCRIPTOR_HANDLE(mDescriptorHeap->GetGPUDescriptorHandleForHeapStart(), descriptorIndex, mDescriptorSize);
+	return descriptorIndex;
+}
+
 void NFGE::Graphics::PipelineComponent_RayTracing::UpdateForSizeChange(UINT width, UINT height)
 {
-	float border = 0.1f;
+	/*float border = 0.1f;
 	float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
 	if (width <= height)
 	{
@@ -547,5 +642,5 @@ void NFGE::Graphics::PipelineComponent_RayTracing::UpdateForSizeChange(UINT widt
 			 1 - border / aspectRatio, 1.0f - border
 		};
 
-	}
+	}*/
 }

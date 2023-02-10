@@ -10,6 +10,7 @@
 #include "Mesh.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
+#include "GraphicsSystem.h"
 #include "../RaytracingHlslCompat.h"
 
 namespace NFGE::Graphics
@@ -75,7 +76,19 @@ namespace NFGE::Graphics
 		UINT mDescriptorsAllocated;
 		UINT mDescriptorSize;
 		// Raytracing scene
-		RayGenConstantBuffer mRayGenCB;
+		//RayGenConstantBuffer mRayGenCB;
+		// We'll allocate space for several of these and they will need to be padded for alignment.
+		static_assert(sizeof(SceneConstantBuffer) < D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, "Checking the size here.");
+
+		union AlignedSceneConstantBuffer
+		{
+			SceneConstantBuffer constants;
+			uint8_t alignmentPadding[D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT];
+		};
+		AlignedSceneConstantBuffer* mMappedConstantData;
+		Microsoft::WRL::ComPtr<ID3D12Resource> mPerFrameConstants;
+		SceneConstantBuffer mSceneCB[GraphicsSystem::sNumFrames];
+		MaterialConstantBuffer mMaterialCB;
 		// Acceleration structure
 		Microsoft::WRL::ComPtr<ID3D12Resource> mAccelerationStructure;
 		Microsoft::WRL::ComPtr<ID3D12Resource> mBottomLevelAccelerationStructure;
@@ -91,8 +104,8 @@ namespace NFGE::Graphics
 		Microsoft::WRL::ComPtr<ID3D12Resource> mRayGenShaderTable;
 
 		// Gemotry
-		struct Vertex { float v1, v2, v3; };
-		MeshBase<Vertex> mMesh;
+		//struct Vertex { float v1, v2, v3; };
+		MeshBase<VertexPN> mMesh;
 		VertexBuffer mVertexBuffer;
 		IndexBuffer mIndexBuffer;
 
@@ -111,10 +124,12 @@ namespace NFGE::Graphics
 		void CreateDescriptorHeap();
 		void CreateRaytracingPSO();
 		void BuildAccelerationStructures(PipelineWorker& worker);
+		void CreateConstantBuffer();
 		void BuildShaderTables();
 		void CreateRaytracingOutputResource();
 		void SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, Microsoft::WRL::ComPtr<ID3D12RootSignature>* rootSig);
-		UINT AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse);
+		UINT AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
+		UINT CreateBufferSRV(Buffer* buffer, UINT numElements, UINT elementSize);
 
 		void UpdateForSizeChange(UINT width, UINT height);
 	};

@@ -255,7 +255,7 @@ void GraphicsSystem::Initialize(const NFGE::Core::Window& window, bool fullscree
 
 	UpdateRenderTargetViews();
 	UpdateDepthStencilView();
-	BindMasterRenderTarget();
+	//BindMasterRenderTarget();
 	mScissorRect = CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX);
 }
 

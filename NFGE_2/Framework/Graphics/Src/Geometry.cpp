@@ -157,20 +157,36 @@ void NFGE::Graphics::GeometryPX::Render(const NFGE::Graphics::Camera& camera)
 }
 
 // ---------------------------- Geometry Raytracing ---------------------------------
-void NFGE::Graphics::GeometryRaytracing::Prepare(const std::vector<PipelineComponent_RayTracing::Vertex>& vertices, const std::vector<UINT16>& indices, DirectionalLight* directionLight)
+void NFGE::Graphics::GeometryRaytracing::Prepare(const std::vector<Graphics::VertexPN>& vertices, const std::vector<UINT16>& indices, const Graphics::Color& albedo)
 {
-	mMeshContext.mLight = directionLight;
 	mPipelineComp_RT.mMesh.mVertices = vertices;
 	mPipelineComp_RT.mMesh.mIndices = indices;
+	mPipelineComp_RT.mMaterialCB.albedo = XMFLOAT4(albedo.r, albedo.g, albedo.b, albedo.a);
 
 	NFGE::Graphics::RegisterPipelineComponent_Load(NFGE::Graphics::WorkerType::Direct, &mPipelineComp_RT);
 }
 
-void NFGE::Graphics::GeometryRaytracing::Render(const NFGE::Graphics::Camera& camera)
+void NFGE::Graphics::GeometryRaytracing::Update(float deltaTime)
+{
+	
+}
+
+void NFGE::Graphics::GeometryRaytracing::Render(const NFGE::Graphics::Camera& camera, const NFGE::Graphics::DirectionalLight& light)
 {
 	auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
 	auto worker = NFGE::Graphics::GetWorker(NFGE::Graphics::WorkerType::Direct);
 	
+	auto graphicsSystem = GraphicsSystem::Get();
+	UINT frameIndex = graphicsSystem->GetCurrentBackBufferIndex();
+
+	Vector3 cameraPos = camera.GetPosition();
+	mPipelineComp_RT.mSceneCB[frameIndex].cameraPosition = { cameraPos.x, cameraPos.y, cameraPos.z ,1.0f};
+	NFGE::Math::Matrix4 pToW = Math::Transpose(NFGE::Math::Inverse(camera.GetViewMatrix() * camera.GetPerspectiveMatrix()));
+	mPipelineComp_RT.mSceneCB[frameIndex].projectionToWorld = { pToW._11, pToW._12, pToW._13, pToW._14, pToW._21, pToW._22, pToW._23, pToW._24, pToW._31, pToW._32, pToW._33, pToW._34, pToW._41, pToW._42, pToW._43, pToW._44 };
+	mPipelineComp_RT.mSceneCB[frameIndex].lightPosition = { light.direction.x, light.direction.y, light.direction.z , 0.0f};
+	mPipelineComp_RT.mSceneCB[frameIndex].lightAmbientColor = { light.ambient.r, light.ambient.g, light.ambient.b ,light.ambient.a };
+	mPipelineComp_RT.mSceneCB[frameIndex].lightDiffuseColor = { light.diffuse.r, light.diffuse.g, light.diffuse.b, light.diffuse.a };
+
 	mPipelineComp_RT.DoRaytracing(*worker);
 	mPipelineComp_RT.CopyToBackBuffer(*worker);
 }

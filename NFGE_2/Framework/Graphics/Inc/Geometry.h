@@ -69,10 +69,10 @@ namespace NFGE::Graphics
 		GeometryMeshContext mMeshContext;
 
 	public:
-		void Prepare(const std::vector<PipelineComponent_RayTracing::Vertex>& vertices, const std::vector<UINT16>& indices, DirectionalLight* directionLight);
+		void Prepare(const std::vector<Graphics::VertexPN>& vertices, const std::vector<UINT16>& indices, const Graphics::Color& albedo);
 		void UnLoad();
 		void Update(float deltaTime);
-		void Render(const NFGE::Graphics::Camera& camera);
+		void Render(const NFGE::Graphics::Camera& camera, const NFGE::Graphics::DirectionalLight& light);
 		void DebugUI();
 	};
 }

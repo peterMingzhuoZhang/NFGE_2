@@ -13,7 +13,7 @@ namespace NFGE::Graphics
 {
 	class CommandQueue;
 	class ResourceStateTracker;
-	class Resoure;
+	class Resource;
     class RenderTarget;
     class VertexBuffer;
     class IndexBuffer;
