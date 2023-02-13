@@ -5,6 +5,7 @@ namespace GlobalRootSignatureParams {
 		OutputViewSlot = 0,
 		AccelerationStructureSlot,
         SceneConstantSlot,
+        IndexBuffersSlot,
         VertexBuffersSlot,
 		Count
 	};

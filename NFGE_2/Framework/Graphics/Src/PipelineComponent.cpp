@@ -171,15 +171,17 @@ void NFGE::Graphics::PipelineComponent_RayTracing::GetLoad(PipelineWorker& worke
 
 	// Global Root Signature
 	{
-		CD3DX12_DESCRIPTOR_RANGE ranges[2]; // Perfomance TIP: Order from most frequent to least frequent.
+		CD3DX12_DESCRIPTOR_RANGE ranges[3]; // Perfomance TIP: Order from most frequent to least frequent.
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);  // 1 output texture
-		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1);  // 2 static index and vertex buffers.
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);  // 1 static index buffer.
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);  // 1 static vertex buffer.
 
 		CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
 		rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
 		rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
 		rootParameters[GlobalRootSignatureParams::SceneConstantSlot].InitAsConstantBufferView(0);
-		rootParameters[GlobalRootSignatureParams::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
+		rootParameters[GlobalRootSignatureParams::IndexBuffersSlot].InitAsDescriptorTable(1, &ranges[1]);
+		rootParameters[GlobalRootSignatureParams::VertexBuffersSlot].InitAsDescriptorTable(1, &ranges[2]);
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
 		SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &mRaytracingGlobalRootSignature);
 	}
@@ -228,7 +230,7 @@ void NFGE::Graphics::PipelineComponent_RayTracing::GetBind(PipelineWorker& worke
 void NFGE::Graphics::PipelineComponent_RayTracing::DoRaytracing(PipelineWorker& worker)
 {
 	auto graphicSystem = NFGE::Graphics::GraphicsSystem::Get();
-	auto commandList = worker.GetGraphicsCommandList();
+	auto commandList = worker.GetGraphicsCommandList().Get();
 	size_t frameIndex = graphicSystem->GetCurrentBackBufferIndex();
 
 	auto DispatchRays = [&](auto* commandList, auto* stateObject, auto* dispatchDesc)
@@ -249,7 +251,14 @@ void NFGE::Graphics::PipelineComponent_RayTracing::DoRaytracing(PipelineWorker& 
 		commandList->DispatchRays(dispatchDesc);
 	};
 
-	commandList->SetComputeRootSignature(mRaytracingGlobalRootSignature.Get());
+	auto SetCommonPipelineState = [&](auto* descriptorSetCommandList)
+	{
+		descriptorSetCommandList->SetDescriptorHeaps(1, mDescriptorHeap.GetAddressOf());
+		// Set index and successive vertex buffer decriptor tables
+		commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::IndexBuffersSlot, mIndexBuffer.mGpuDescriptorHandle);
+		commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, mVertexBuffer.mGpuDescriptorHandle);
+		commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, mRaytracingOutputResourceUAVGpuDescriptor);
+	};
 
 	commandList->SetComputeRootSignature(mRaytracingGlobalRootSignature.Get());
 
@@ -259,9 +268,10 @@ void NFGE::Graphics::PipelineComponent_RayTracing::DoRaytracing(PipelineWorker& 
 	commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::SceneConstantSlot, cbGpuAddress);
 	// Bind the heaps, acceleration structure and dispatch rays.    
 	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
-	commandList->SetDescriptorHeaps(1, mDescriptorHeap.GetAddressOf());
-	commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, mIndexBuffer.mGpuDescriptorHandle);
-	commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, mRaytracingOutputResourceUAVGpuDescriptor);
+	//commandList->SetDescriptorHeaps(1, mDescriptorHeap.GetAddressOf());
+	//commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBuffersSlot, mIndexBuffer.mGpuDescriptorHandle);
+	//commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, mRaytracingOutputResourceUAVGpuDescriptor);
+	SetCommonPipelineState(commandList);
 	commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, mTopLevelAccelerationStructure->GetGPUVirtualAddress());
 	DispatchRays(mDxrCommandList.Get(), mDxrStateObject.Get(), &dispatchDesc);
 }
