@@ -208,7 +208,7 @@ void NFGE::Graphics::PipelineComponent_RayTracing::GetLoad(PipelineWorker& worke
 
 	// Vertex buffer is passed to the shader along with index buffer as a descriptor table.
 	// Vertex buffer descriptor must follow index buffer descriptor in the descriptor heap.
-	UINT descriptorIndexIB = CreateBufferSRV(&mIndexBuffer, sizeof(indices) * 2 / 4, 0); // each element has two bytes
+	UINT descriptorIndexIB = CreateBufferSRV(&mIndexBuffer, static_cast<UINT>(indices.size()), sizeof(indices[0])); // each element has two bytes
 	UINT descriptorIndexVB = CreateBufferSRV(&mVertexBuffer, static_cast<UINT>(vertices.size()), sizeof(vertices[0]));
 	ThrowIfFailed(descriptorIndexVB == descriptorIndexIB + 1, L"Vertex Buffer descriptor index must follow that of Index Buffer descriptor index!");
 	
