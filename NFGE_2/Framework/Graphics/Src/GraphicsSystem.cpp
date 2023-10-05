@@ -342,7 +342,6 @@ void NFGE::Graphics::GraphicsSystem::Present()
 	mCurrentBackBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 
 	ReleaseStaleDescriptors(mFrameCountValues[mCurrentBackBufferIndex]);
-	SpriteRenderer::Get()->ReleaseGraphicsMemory();
 }
 
 void GraphicsSystem::ToggleFullscreen(HWND windowHandle)

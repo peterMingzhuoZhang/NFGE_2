@@ -96,6 +96,7 @@ void NFGE::App::Run(AppConfig appConfig)
 		graphicSystem->EndMasterRender();
 
 		graphicSystem->Present();
+		Graphics::SpriteRenderer::Get()->ReleaseGraphicsMemory();
 	}
 
 	// Clean Up
